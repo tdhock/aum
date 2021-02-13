@@ -8,7 +8,7 @@ class Totals{
 };
 
 int aum
-  (const double *err_max_pred,
+  (const double *err_pred,
    const double *err_fp,
    const double *err_fn,
    const int *err_example,
