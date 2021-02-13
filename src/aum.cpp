@@ -53,20 +53,60 @@ int aum
     }
     it->second.fn_before = cumsum;
     TotalsMap::reverse_iterator before = next(it);
-    if(before != totals_map.rend()){
+    double min;
+    if(before == totals_map.rend()){
+      min = 0;
+    }else{
       double fp_before = before->second.fp_after;
-      double min;
       if(cumsum < fp_before){
 	min = cumsum;
       }else{
 	min = fp_before;
       }
-      it->second.min_before = min;
       *out_aum += min*(it->first - before->first);
     }
+    it->second.min_before = min;
   }
-  for(TotalsMap::iterator it=totals_map.begin(); it != totals_map.end(); it++){
-    printf("%10.2f fp_diff=%3.0f fn_diff=%3.0f fn_before=%3.0f fp_after=%3.0f\n", it->first, it->second.fp_diff, it->second.fn_diff, it->second.fn_before, it->second.fp_after);
+  double sign;
+  for(int out_col=0; out_col<2; out_col++){
+    if(out_col==0){
+      sign = -1;
+    }else{
+      sign = 1;
+    }
+    for(int row=0; row<err_N; row++){
+      int row_example = err_example[row];
+      TotalsMap::iterator it = totals_map.find(out_thresh[row]);
+      double fp, fn, min, fp_adj, fn_adj, min_adj;
+      if(out_col==0){
+	//for out_col=0, sign=-1, we join using out_thresh = min_thresh,
+	//which means we need to take fp/fn/min from after the iterator.
+	fp = it->second.fp_after;
+	if(next(it) == totals_map.end()){
+	  fn = 0;
+	  min = 0;
+	}else{
+	  fn = next(it)->second.fn_before;
+	  min = next(it)->second.min_before;
+	}
+      }else{//out_col=1, take before iterator.
+	if(it == totals_map.begin()){
+	  fp = 0;
+	}else{
+	  fp = prev(it)->second.fp_after;
+	}
+	fn = it->second.fn_before;
+	min = it->second.min_before;
+      }
+      fp_adj = fp + sign*err_fp_diff[row];
+      fn_adj = fn + sign*err_fn_diff[row];
+      if(fp_adj < fn_adj){
+	min_adj = fp_adj;
+      }else{
+	min_adj = fn_adj;
+      }
+      out_deriv_mat[row_example+out_col*pred_N] += sign*(min_adj - min);
+    }
   }
   return 0;
 }
