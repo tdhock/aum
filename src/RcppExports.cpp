@@ -6,14 +6,14 @@
 using namespace Rcpp;
 
 // aum_interface
-Rcpp::List aum_interface(const Rcpp::DataFrame error_df, const Rcpp::NumericVector pred_vec);
-RcppExport SEXP _aum_aum_interface(SEXP error_dfSEXP, SEXP pred_vecSEXP) {
+Rcpp::List aum_interface(const Rcpp::DataFrame err_df, const Rcpp::NumericVector pred_vec);
+RcppExport SEXP _aum_aum_interface(SEXP err_dfSEXP, SEXP pred_vecSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type error_df(error_dfSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type err_df(err_dfSEXP);
     Rcpp::traits::input_parameter< const Rcpp::NumericVector >::type pred_vec(pred_vecSEXP);
-    rcpp_result_gen = Rcpp::wrap(aum_interface(error_df, pred_vec));
+    rcpp_result_gen = Rcpp::wrap(aum_interface(err_df, pred_vec));
     return rcpp_result_gen;
 END_RCPP
 }
