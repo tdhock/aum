@@ -1,5 +1,4 @@
 #include <Rcpp.h>
-#include <R.h>
 #include "aum.h"
  
 // [[Rcpp::export]]

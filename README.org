@@ -1,0 +1,23 @@
+Area Under the Minimum of False Positives and Negatives
+
+This R package provides an efficient C++ implementation of the AUM and
+its directional derivatives, which can be used to optimize Area Under
+the ROC Curve (AUC) in supervised binary classification and
+changepoint detection problems.
+
+** Installation
+
+#+begin_src R
+if(!requireNamespace("remotes"))install.packages("remotes")
+remotes::install_github("tdhock/aum")
+#+end_src
+
+** Usage
+
+
+** Related Work
+
+- [[https://github.com/tdhock/penaltyLearning/blob/master/R/ROChange.R][penaltyLearning::ROChange]] provides an alternative pure R
+  implementation of AUM and its directional derivatives (as well as
+  AUC computation).
+

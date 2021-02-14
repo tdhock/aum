@@ -12,4 +12,4 @@ LinkingTo: Rcpp
 URL: https://github.com/tdhock/aum
 BugReports: https://github.com/tdhock/aum/issues
 Imports: Rcpp
-Suggests: testthat
+Suggests: testthat, data.table, ggplot2

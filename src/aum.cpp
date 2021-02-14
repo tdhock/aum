@@ -1,7 +1,5 @@
 #include "aum.h"
-#include "math.h"
 #include <map>
-#include <stdio.h>
 
 Totals::Totals(){
   fp_diff = 0;
@@ -11,19 +9,25 @@ Totals::Totals(){
 // Need to use a map rather than a set because map values are mutable
 // whereas set elements are not.
 typedef std::map<double, Totals> TotalsMap;
- 
+
+// Main function for computing Area Under Minimum of False Positives
+// and False Negatives. All pointer arguments must be arrays (of size
+// indicated in comments below) that are allocated before calling
+// aum. Since err_N >= pred_N the complexity is O( err_N log err_N ),
+// because we use log-time STL map methods (insert, find) err_N times.
 int aum
-  (const double *err_pred,
-   const double *err_fp_diff,
-   const double *err_fn_diff,
-   const int *err_example,
-   const int err_N,
-   const double *pred_vec,
-   const int pred_N,
-   //inputs above, outputs below.
-   double *out_thresh,
-   double *out_aum,
-   double *out_deriv_mat){
+(const double *err_pred, //err_N
+ const double *err_fp_diff, //err_N
+ const double *err_fn_diff, //err_N
+ const int *err_example, //err_N
+ const int err_N,
+ const double *pred_vec, //pred_N
+ const int pred_N,
+ //inputs above, outputs below.
+ double *out_thresh, //err_N
+ double *out_aum, //1
+ double *out_deriv_mat //pred_N*2
+ ){
   TotalsMap totals_map;
   double cumsum;
   *out_aum = 0.0;
@@ -38,7 +42,8 @@ int aum
     ret.first->second.fn_diff += err_fn_diff[row];
   }
   cumsum = 0.0;
-  for(TotalsMap::iterator it=totals_map.begin(); it != totals_map.end(); it++){
+  for(TotalsMap::iterator it=totals_map.begin();
+      it != totals_map.end(); it++){
     cumsum += it->second.fp_diff;
     if(cumsum < 0){
       return ERROR_FP_SHOULD_BE_NON_NEGATIVE;
@@ -46,7 +51,8 @@ int aum
     it->second.fp_after = cumsum;
   }
   cumsum = 0.0;
-  for(TotalsMap::reverse_iterator it=totals_map.rbegin(); it != totals_map.rend(); it++){
+  for(TotalsMap::reverse_iterator it=totals_map.rbegin();
+      it != totals_map.rend(); it++){
     cumsum -= it->second.fn_diff;
     if(cumsum < 0){
       return ERROR_FN_SHOULD_BE_NON_NEGATIVE;

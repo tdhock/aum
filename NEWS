@@ -1,3 +1,14 @@
+TODOs
+
+more C++ error checking / tests.
+
+aum_diffs_binary, aum_diffs_changepoint functions for producing error
+diffs data frame required for input to aum.
+
+example data.
+
+vignette comparing logistic regression to aum minimization?
+
 2021.2.12
 
 First draft.

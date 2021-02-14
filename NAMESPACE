@@ -1,3 +1,4 @@
 useDynLib(aum, .registration=TRUE)
+export(aum)
 importFrom(Rcpp, evalCpp)
-export(aum_interface)
+
