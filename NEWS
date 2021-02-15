@@ -2,12 +2,21 @@ TODOs
 
 more C++ error checking / tests.
 
-aum_diffs_binary, aum_diffs_changepoint functions for producing error
+vignette comparing logistic regression to aum minimization?
+
+aum could support named input/output? so could
+aum_diffs_binary(c(negative=-1, positive=1)).
+
+2021.2.14
+
+aum_diffs, aum_diffs_binary, aum_diffs_penalty for creating error
 diffs data frame required for input to aum.
 
-example data.
+aum_errors for converting aum_diffs to canonical error functions
+(which start at fp=0 and end at fn=0). plot.aum_diffs uses this to
+show a default plot of the error functions.
 
-vignette comparing logistic regression to aum minimization?
+fn.not.zero example data taken from feaure-learning-benchmark.
 
 2021.2.12
 

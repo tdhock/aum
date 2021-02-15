@@ -28,9 +28,11 @@ int aum
  double *out_aum, //1
  double *out_deriv_mat //pred_N*2
  ){
-  TotalsMap totals_map;
-  double cumsum;
   *out_aum = 0.0;
+  for(int out_i=0; out_i<pred_N*2; out_i++){
+    out_deriv_mat[out_i] = 0.0;
+  }
+  TotalsMap totals_map;
   Totals zero_diffs;
   for(int row=0; row<err_N; row++){
     int row_example = err_example[row];
@@ -41,6 +43,7 @@ int aum
     ret.first->second.fp_diff += err_fp_diff[row];
     ret.first->second.fn_diff += err_fn_diff[row];
   }
+  double cumsum;
   cumsum = 0.0;
   for(TotalsMap::iterator it=totals_map.begin();
       it != totals_map.end(); it++){

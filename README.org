@@ -14,6 +14,56 @@ remotes::install_github("tdhock/aum")
 
 ** Usage
 
+The code below creates an aum_diffs data table which represents error
+functions for two labeled examples in binary classification.
+
+#+begin_src R
+> (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
+   example pred fp_diff fn_diff
+1:       1    0       1       0
+2:       2    0       0      -1
+#+end_src
+
+- The first row above means there is a false positive difference of 1
+  at a predicted value of 0. This is the error function for each
+  example with a negative label in binary classification (no error if
+  predicted value less than 0, changes up to 1 false positive for
+  larger predicted values).
+- The second row means there is a false negative difference of -1 at a
+  predicted value of 0. This is the error function for each example
+  with a positive label in binary classification (1 false negative if
+  predicted value less than 0, changes down to no errors for larger
+  predicted values).
+
+Next we assume predicted values of 0 for both examples, and then
+compute Area Under the Minimum (AUM) of False Positives and False
+Negatives and its directional derivatives.
+
+#+begin_src R
+> aum::aum(bin.diffs, c(0,0))
+$aum
+[1] 0
+
+$derivative_mat
+     [,1] [,2]
+[1,]    0    1
+[2,]   -1    0
+#+end_src
+
+The result above is a named list with two elements.
+
+- =aum= is a numeric value giving the AUM for the specified error
+  functions and predicted values.
+- =derivative_mat= is a matrix of directional derivatives, one row for
+  each example (first column for left directional derivative, second
+  column for right). In the example above we can see that decreasing
+  the first prediction (entry 1,1) and/or increasing the second
+  prediction (entry 2,2) results in no change to AUM. Since the right
+  directional derivative of the first example is positive (entry 1,2),
+  that implies an increased prediction would result in an increased
+  AUM. Similarly the left directional derivative for the second
+  example is negative (entry 2,1), indicating that a decreased
+  prediction would result in an increased AUM.
 
 ** Related Work
 
