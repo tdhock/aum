@@ -1,7 +1,7 @@
 Area Under the Minimum of False Positives and Negatives
 
-| [[file:tests/testthat][tests]]    | [[https://travis-ci.org/tdhock/aum][https://travis-ci.org/tdhock/aum.png?branch=master]]                           |
-| [[https://github.com/jimhester/covr][coverage]] | [[https://coveralls.io/github/tdhock/aum?branch=master][https://coveralls.io/repos/tdhock/aum/badge.svg?branch=master&service=github]] |
+| [[file:tests/testthat][tests]]    | [[https://travis-ci.org/tdhock/aum][https://travis-ci.org/tdhock/aum.png?branch=main]]                           |
+| [[https://github.com/jimhester/covr][coverage]] | [[https://coveralls.io/github/tdhock/aum?branch=master][https://coveralls.io/repos/tdhock/aum/badge.svg?branch=main&service=github]] |
 
 This R package provides an efficient C++ implementation of the AUM and
 its directional derivatives, which can be used to (indirectly)
