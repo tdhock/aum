@@ -1,11 +1,13 @@
 TODOs
 
-more C++ error checking / tests.
-
 vignette comparing logistic regression to aum minimization?
 
 aum could support named input/output? so could
 aum_diffs_binary(c(negative=-1, positive=1)).
+
+2021.2.15
+
+more C++ error checking / tests.
 
 2021.2.14
 

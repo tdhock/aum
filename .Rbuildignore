@@ -1,3 +1,5 @@
 README.org
 .dir-locals.el
 build.sh
+^codecov\.yml$
+^\.github$

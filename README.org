@@ -1,15 +1,18 @@
 Area Under the Minimum of False Positives and Negatives
 
+| [[file:tests/testthat][tests]]    | [[https://travis-ci.org/tdhock/aum][https://travis-ci.org/tdhock/aum.png?branch=master]]                           |
+| [[https://github.com/jimhester/covr][coverage]] | [[https://coveralls.io/github/tdhock/aum?branch=master][https://coveralls.io/repos/tdhock/aum/badge.svg?branch=master&service=github]] |
+
 This R package provides an efficient C++ implementation of the AUM and
-its directional derivatives, which can be used to optimize Area Under
-the ROC Curve (AUC) in supervised binary classification and
-changepoint detection problems.
+its directional derivatives, which can be used to (indirectly)
+optimize Area Under the ROC Curve (AUC) in supervised binary
+classification and changepoint detection problems.
 
 ** Installation
 
 #+begin_src R
-if(!requireNamespace("remotes"))install.packages("remotes")
-remotes::install_github("tdhock/aum")
+  if(!requireNamespace("remotes"))install.packages("remotes")
+  remotes::install_github("tdhock/aum")
 #+end_src
 
 ** Usage
@@ -20,8 +23,8 @@ functions for two labeled examples in binary classification.
 #+begin_src R
 > (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
    example pred fp_diff fn_diff
-1:       1    0       1       0
-2:       2    0       0      -1
+1:       0    0       1       0
+2:       1    0       0      -1
 #+end_src
 
 - The first row above means there is a false positive difference of 1

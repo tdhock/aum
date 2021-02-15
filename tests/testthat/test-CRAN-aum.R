@@ -25,7 +25,7 @@ ggcost <- function(){
 diffs <- function(...){
   L <- list(...)
   for(example.i in seq_along(L)){
-    L[[example.i]]$example <- example.i
+    L[[example.i]]$example <- example.i-1L
   }
   do.call(rbind, L)
 }
@@ -184,4 +184,62 @@ test_that("4fp[2,3] 1fn[-1,-1] 2fp2fn[-2,-1]", {
   expect_equal(L$derivative_mat[1,], c(2,3))
   expect_equal(L$derivative_mat[2,], c(-1,-1))
   expect_equal(L$derivative_mat[3,], c(-2,-1))
+})
+
+models <- diffs(
+  data.frame(fp_diff=0,
+             fn_diff=1,
+             pred   =0))
+predictions <- c(1,0,0)
+test_that("error for fn<0", {
+  expect_error({
+    aum::aum(models, predictions)
+  }, "fn should be non-negative")
+})
+
+models <- diffs(
+  data.frame(fp_diff=-1,
+             fn_diff=0,
+             pred   =0))
+predictions <- c(1,0,0)
+test_that("error for fp<0", {
+  expect_error({
+    aum::aum(models, predictions)
+  }, "fp should be non-negative")
+})
+
+models <- diffs(
+  data.frame(fp_diff=1,
+             fn_diff=0,
+             pred   =-1),
+  data.frame(fp_diff=0,
+             fn_diff=-1,
+             pred=1))
+predictions <- c(0,0,0)
+test_that("extra pred ok", {
+  L <- aum::aum(models, predictions)
+  expect_equal(L$aum, 2)
+  expect_equal(L$derivative_mat[1,], c(1,1))
+  expect_equal(L$derivative_mat[2,], c(-1,-1))
+  expect_equal(L$derivative_mat[3,], c(0,0))
+  other <- with(models, data.frame(example=example+1L, fp_diff, fn_diff, pred))
+  L <- aum::aum(other, predictions)
+  expect_equal(L$aum, 2)
+  expect_equal(L$derivative_mat[1,], c(0,0))
+  expect_equal(L$derivative_mat[2,], c(1,1))
+  expect_equal(L$derivative_mat[3,], c(-1,-1))
+})
+
+test_that("error for example=length(predictions)", {
+  other <- with(models, data.frame(example=example+2L, fp_diff, fn_diff, pred))
+  expect_error({
+    aum::aum(other, predictions)
+  }, "example should be less than number of predictions")
+})
+
+test_that("error for example<0", {
+  other <- with(models, data.frame(example=example-1L, fp_diff, fn_diff, pred))
+  expect_error({
+    aum::aum(other, predictions)
+  }, "example should be non-negative")
 })

@@ -36,6 +36,12 @@ int aum
   Totals zero_diffs;
   for(int row=0; row<err_N; row++){
     int row_example = err_example[row];
+    if(row_example >= pred_N){
+      return ERROR_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS;
+    }
+    if(row_example < 0){
+      return ERROR_EXAMPLE_SHOULD_BE_NON_NEGATIVE;
+    }
     out_thresh[row] = err_pred[row] - pred_vec[row_example];
     std::pair<double,Totals> to_insert(out_thresh[row],zero_diffs);
     std::pair<TotalsMap::iterator,bool> ret;

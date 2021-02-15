@@ -28,6 +28,18 @@ Rcpp::List aum_interface
      //inputs above, outputs below.
      &out_thresh[0],
      &out_aum[0], &out_deriv_mat[0]);
+  if(status == ERROR_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS){
+    Rcpp::stop("example should be less than number of predictions"); 
+  }
+  if(status == ERROR_EXAMPLE_SHOULD_BE_NON_NEGATIVE){
+    Rcpp::stop("example should be non-negative");
+  }
+  if(status == ERROR_FN_SHOULD_BE_NON_NEGATIVE){
+    Rcpp::stop("fn should be non-negative"); 
+  }
+  if(status == ERROR_FP_SHOULD_BE_NON_NEGATIVE){
+    Rcpp::stop("fp should be non-negative"); 
+  }
   if(status != 0){
     Rcpp::stop("non-zero status"); 
   }
