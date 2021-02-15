@@ -29,8 +29,8 @@ right). If }
 \examples{
 
 (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
-aum::aum(bin.diffs, c(-1,1))
+aum::aum(bin.diffs, c(-10,10))
 aum::aum(bin.diffs, c(0,0))
-aum::aum(bin.diffs, c(1,-1))
+aum::aum(bin.diffs, c(10,-10))
 
 }

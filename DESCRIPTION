@@ -16,4 +16,7 @@ Suggests:
     testthat,
     ggplot2,
     penaltyLearning,
+    knitr, markdown,
+    directlabels, microbenchmark,
     covr
+VignetteBuilder: knitr

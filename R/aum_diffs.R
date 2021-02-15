@@ -151,6 +151,19 @@ aum_diffs_penalty <- structure(function
 ){
   example <- min.lambda <- fp <- fn <- NULL
   ## Above to silence CRAN check NOTE.
+  if(!is.numeric(errors.df[["fp"]])){
+    stop("errors.df must have numeric column named fp")
+  }
+  if(!is.numeric(errors.df[["fn"]])){
+    stop("errors.df must have numeric column named fp")
+  }
+  if(!is.numeric(errors.df[["min.lambda"]])){
+    stop("errors.df must have numeric column named min.lambda")
+  }
+  e <- errors.df[["example"]]
+  if(!(is.integer(e) || is.character(e))){
+    stop("errors.df must have integer or character column named example")
+  }
   with(as.data.table(errors.df)[order(example, -min.lambda)], {
     is.end <- min.lambda == 0
     mydiff <- function(x){

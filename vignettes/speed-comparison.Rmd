@@ -1,0 +1,76 @@
+<!--
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Speed comparison}
+-->
+
+# Speed comparison
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Neuroblastoma data
+
+Consider the neuroblastoma data. There are 3418 labeled examples. If
+we consider subsets, how long does it take to compute the AUM and its
+directional derivatives?
+
+```{r}
+data(neuroblastomaProcessed, package="penaltyLearning")
+library(data.table)
+nb.err <- data.table(neuroblastomaProcessed$errors)
+nb.err[, example := paste0(profile.id, ".", chromosome)]
+nb.X <- neuroblastomaProcessed$feature.mat
+(N.pred.vec <- as.integer(10^seq(1, 3, by=0.5)))
+timing.dt.list <- list()
+for(N.pred in N.pred.vec){
+  N.pred.names <- rownames(nb.X)[1:N.pred]
+  N.diffs.dt <- aum::aum_diffs_penalty(nb.err, N.pred.names)
+  pred.dt <- data.table(example=N.pred.names, pred.log.lambda=0)
+  timing.df <- microbenchmark::microbenchmark(penaltyLearning={
+    roc.list <- penaltyLearning::ROChange(nb.err, pred.dt, "example")
+  }, aum={
+    aum.list <- aum::aum(N.diffs.dt, pred.dt$pred.log.lambda)
+  }, times=10)
+  timing.dt.list[[paste(N.pred)]] <- with(timing.df, data.table(
+    package=expr, N.pred, seconds=time/1e9))
+}
+(timing.dt <- do.call(rbind, timing.dt.list))
+
+```
+
+Below we summarize and plot these timings.
+
+```{r}
+stats.dt <- timing.dt[, .(
+  q25=quantile(seconds, 0.25),
+  median=median(seconds),
+  q75=quantile(seconds, 0.75)
+), by=.(package, N.pred)]
+library(ggplot2)
+gg <- ggplot()+
+  geom_line(aes(
+    N.pred, median, color=package),
+    data=stats.dt)+
+  geom_ribbon(aes(
+    N.pred, ymin=q25, ymax=q75, fill=package),
+    data=stats.dt,
+    alpha=0.5)+
+  scale_x_log10(limits=stats.dt[, c(min(N.pred), max(N.pred)*5)])+
+  scale_y_log10()
+directlabels::direct.label(gg, "right.polygons")
+
+```
+
+From the plot above we can see that both packages have similar
+asymptotic time complexity (log-linear). However aum is faster by
+orders of magnitude (speedups shown below).
+
+```{r}
+stats.wide <- data.table::dcast(
+  stats.dt, N.pred ~ package, value.var = "median")
+stats.wide[, speedup := penaltyLearning/aum][]
+```
