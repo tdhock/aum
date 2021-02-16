@@ -66,7 +66,7 @@ directlabels::direct.label(gg, "right.polygons")
 ```
 
 From the plot above we can see that both packages have similar
-asymptotic time complexity (log-linear). However aum is faster by
+asymptotic time complexity. However aum is faster by
 orders of magnitude (speedups shown below).
 
 ```{r}
@@ -74,3 +74,10 @@ stats.wide <- data.table::dcast(
   stats.dt, N.pred ~ package, value.var = "median")
 stats.wide[, speedup := penaltyLearning/aum][]
 ```
+
+Actually the trend seems to indicate that the speedup decreases as
+N.pred increases, which suggests the asymptotic complexity is
+different --- linear for penaltyLearning (due to use of radix sort in
+data.table), log-linear for aum (due to use of C++ STL Map). Exercise
+for the reader: implement aum computation using radix sort, add its
+timings to this figure.
