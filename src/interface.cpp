@@ -40,8 +40,8 @@ Rcpp::List aum_interface
   if(status == ERROR_FP_SHOULD_BE_NON_NEGATIVE){
     Rcpp::stop("fp should be non-negative"); 
   }
-  if(status != 0){
-    Rcpp::stop("non-zero status"); 
+  if(status == ERROR_ALL_PREDICTIONS_SHOULD_BE_FINITE){
+    Rcpp::stop("all predictions should be finite");
   }
   return Rcpp::List::create
     (Rcpp::Named("aum", out_aum),

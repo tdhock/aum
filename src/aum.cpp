@@ -1,4 +1,5 @@
 #include "aum.h"
+#include <math.h>//isfinite
 #include <map>
 
 Totals::Totals(){
@@ -32,6 +33,11 @@ int aum
   for(int out_i=0; out_i<pred_N*2; out_i++){
     out_deriv_mat[out_i] = 0.0;
   }
+  for(int pred_i=0; pred_i<pred_N; pred_i++){
+    if(!isfinite(pred_vec[pred_i])){
+      return ERROR_ALL_PREDICTIONS_SHOULD_BE_FINITE;
+    }
+  }
   TotalsMap totals_map;
   Totals zero_diffs;
   for(int row=0; row<err_N; row++){
@@ -42,7 +48,8 @@ int aum
     if(row_example < 0){
       return ERROR_EXAMPLE_SHOULD_BE_NON_NEGATIVE;
     }
-    out_thresh[row] = err_pred[row] - pred_vec[row_example];
+    double pred_val = pred_vec[row_example];
+    out_thresh[row] = err_pred[row] - pred_val;
     std::pair<double,Totals> to_insert(out_thresh[row],zero_diffs);
     std::pair<TotalsMap::iterator,bool> ret;
     ret = totals_map.insert(to_insert);

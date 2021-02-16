@@ -18,7 +18,7 @@ aum_errors <- structure(function
   (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
   if(requireNamespace("ggplot2"))plot(bin.diffs)
   aum::aum_errors(bin.diffs)
-  
+
 })
 
 ### Plot method for aum_diffs which shows piecewise constant error
@@ -26,9 +26,6 @@ aum_errors <- structure(function
 plot.aum_diffs <- function(x, ...){
   min.pred <- value <- max.pred <- variable <- pred <- NULL
   ## Above to silence CRAN check NOTE.
-  if(!requireNamespace("ggplot2")){
-    stop("please install ggplot2 for plotting aum_diffs")
-  }
   err.wide <- aum_errors(x)
   err.tall <- data.table::melt(err.wide, measure=c("fp", "fn"))
   ggplot2::ggplot()+
@@ -42,7 +39,7 @@ plot.aum_diffs <- function(x, ...){
       data=x)+
     ggplot2::scale_size_manual(values=c(fp=2, fn=1))+
     ggplot2::facet_grid(example ~ ., labeller=ggplot2::label_both)
-}  
+}
 
 aum_diffs <- structure(function
 ### Create error differences data table which can be used as input to
@@ -59,8 +56,7 @@ aum_diffs <- structure(function
 ### Character vector of example names for predictions.
 ){
   if(is.character(example) && is.character(pred.name.vec)){
-    n.vec <- names(pred.name.vec)
-    n.tab <- table(n.vec)
+    n.tab <- table(pred.name.vec)
     bad <- n.tab[1 < n.tab]
     if(length(bad)){
       stop(
@@ -84,7 +80,7 @@ aum_diffs <- structure(function
   aum::aum_diffs_binary(c(0,1))
   aum::aum_diffs(c("positive", "negative"), 0, c(0,1), c(-1,1), c("negative", "positive"))
   rbind(aum::aum_diffs(0L, 0, 1, 0), aum_diffs(1L, 0, 0, -1))
-  
+
 })
 
 aum_diffs_binary <- structure(function
@@ -103,7 +99,7 @@ aum_diffs_binary <- structure(function
     is.finite(label.vec),
     allin(0,1) || allin(-1,1)
   )){
-    stop("label.vec must be numeric vector with length>0 and all elements either 0,1 or -1,1")    
+    stop("label.vec must be numeric vector with length>0 and all elements either 0,1 or -1,1")
   }
   label.vec[label.vec==0] <- -1
   example <- if(is.null(names(label.vec))){
@@ -132,7 +128,7 @@ aum_diffs_binary <- structure(function
   aum_diffs_binary(c(0,1))
   aum_diffs_binary(c(-1,1))
   aum_diffs_binary(c(a=0,b=1,c=0), c("c","b"))
-  
+
 })
 
 aum_diffs_penalty <- structure(function
@@ -151,14 +147,10 @@ aum_diffs_penalty <- structure(function
 ){
   example <- min.lambda <- fp <- fn <- NULL
   ## Above to silence CRAN check NOTE.
-  if(!is.numeric(errors.df[["fp"]])){
-    stop("errors.df must have numeric column named fp")
-  }
-  if(!is.numeric(errors.df[["fn"]])){
-    stop("errors.df must have numeric column named fp")
-  }
-  if(!is.numeric(errors.df[["min.lambda"]])){
-    stop("errors.df must have numeric column named min.lambda")
+  for(cname in c("fp", "fn", "min.lambda")){
+    if(!is.numeric(errors.df[[cname]])){
+      stop("errors.df must have numeric column named ", cname)
+    }
   }
   e <- errors.df[["example"]]
   if(!(is.integer(e) || is.character(e))){
@@ -233,6 +225,6 @@ aum_diffs_penalty <- structure(function
       scale_size_manual(values=c(fp=2, fn=1))+
       facet_grid(example ~ ., labeller=label_both)
   }
-  
+
 })
-  
+

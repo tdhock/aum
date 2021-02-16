@@ -2,12 +2,16 @@ TODOs
 
 vignette comparing logistic regression to aum minimization?
 
-aum could support named input/output? so could
-aum_diffs_binary(c(negative=-1, positive=1)).
+2021.2.16
+
+aum supports names for predictions (copied to row names of
+derivative_mat).
 
 2021.2.15
 
 more C++ error checking / tests.
+
+vignette comparing speed with penaltyLearning::ROChange.
 
 2021.2.14
 

@@ -88,11 +88,12 @@ test_that("aum=0 diff 1fp[0,0] 1fn[0,0]", {
   expect_equal(L$derivative_mat[2,], c(0,0))
 })
 
-predictions <- c(1, -1)
+predictions <- c(a=1, b=-1)
 ggcost()
 test_that("aum=2 diff 1fp[1,1] 1fn[-1,-1]", {
   L <- aum::aum(models, predictions)
   expect_equal(L$aum, 2)
+  expect_identical(rownames(L$derivative_mat), c("a","b"))
   expect_equal(L$derivative_mat[1,], c(1,1))
   expect_equal(L$derivative_mat[2,], c(-1,-1))
 })
@@ -242,4 +243,33 @@ test_that("error for example<0", {
   expect_error({
     aum::aum(other, predictions)
   }, "example should be non-negative")
+})
+
+test_that("error for no predictions", {
+  expect_error({
+    aum::aum(models, numeric())
+  }, "need at least one prediction")
+})
+
+test_that("error for non-finite prediction", {
+  expect_error({
+    aum::aum(models, c(0,NA))
+  }, "all predictions should be finite")
+  expect_error({
+    aum::aum(models, c(0,Inf))
+  }, "all predictions should be finite")
+})
+
+models <- data.frame(
+  example=integer(),
+  fp_diff=numeric(),
+  fn_diff=numeric(),
+  pred   =numeric())
+predictions <- c(1,0,0)
+test_that("no diffs ok", {
+  L <- aum::aum(models, predictions)
+  expect_equal(L$aum, 0)
+  expect_equal(L$derivative_mat[1,], c(0,0))
+  expect_equal(L$derivative_mat[2,], c(0,0))
+  expect_equal(L$derivative_mat[3,], c(0,0))
 })

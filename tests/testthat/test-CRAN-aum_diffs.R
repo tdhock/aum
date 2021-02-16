@@ -55,3 +55,30 @@ test_that("binary diffs computed for three named labels", {
   expect_equal(as.data.frame(computed[order(example)]), exp.df)
 })
 
+test_that("error for numeric example", {
+  expect_error({
+    aum::aum_diffs(1, 1, 1, 1)
+  }, "example must be integer vector but has class: numeric")
+})
+
+test_that("error for non-unique predicted example names", {
+  expect_error({
+    aum::aum_diffs("ex1", 1, 1, 1, c("a","a","b","b","c"))
+  }, "elements of pred.name.vec must be unique, problems: a, b")
+})
+
+test_that("error for columns in penalty error", {
+  expect_error({
+    aum::aum_diffs_penalty(data.frame(example=1L, min.lambda=0, fp=0))
+  }, "errors.df must have numeric column named fn")
+  expect_error({
+    aum::aum_diffs_penalty(data.frame(example=1L, min.lambda=0, fn=0))
+  }, "errors.df must have numeric column named fp")
+  expect_error({
+    aum::aum_diffs_penalty(data.frame(example=1L, fp=0, fn=0))
+  }, "errors.df must have numeric column named min.lambda")
+  expect_error({
+    aum::aum_diffs_penalty(data.frame(example=1, min.lambda=0, fp=0, fn=0))
+  }, "errors.df must have integer or character column named example")
+})
+
