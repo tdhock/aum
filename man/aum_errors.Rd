@@ -2,9 +2,9 @@
 \alias{aum_errors}
 \title{aum errors}
 \description{Convert diffs to canonical errors.}
-\usage{aum_errors(diffs.dt)}
+\usage{aum_errors(diffs.df)}
 \arguments{
-  \item{diffs.dt}{data.table of diffs from \code{\link{aum_diffs}}.}
+  \item{diffs.df}{data.table of diffs from \code{\link{aum_diffs}}.}
 }
 
 \value{data.table suitable for plotting piecewise constant error

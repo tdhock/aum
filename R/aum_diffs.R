@@ -1,11 +1,11 @@
 aum_errors <- structure(function
 ### Convert diffs to canonical errors.
-(diffs.dt
+(diffs.df
 ### data.table of diffs from aum_diffs.
 ){
-  pred <- fp_diff <- fn_diff <- example <- NULL
+  pred <- fp_diff <- fn_diff <- example <- . <- NULL
   ## Above to silence CRAN check NOTE.
-  diffs.dt[, data.table(
+  data.table(diffs.df)[order(example, pred), .(
     min.pred=c(-Inf, pred),
     max.pred=c(pred, Inf),
     fp=cumsum(c(0, fp_diff)),

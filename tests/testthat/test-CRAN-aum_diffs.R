@@ -1,4 +1,5 @@
 library(testthat)
+library(data.table)
 
 test_that("duplicate names is an error", {
   expect_error({
@@ -82,3 +83,18 @@ test_that("error for columns in penalty error", {
   }, "errors.df must have integer or character column named example")
 })
 
+test_that("aum_errors works even if input not sorted", {
+  diff.df <- data.frame(
+    example=as.integer(c(0, 0, 1)),
+    pred=c(2, 1, 3),
+    fp_diff=c(1, 0, 1),
+    fn_diff=c(0, -1, 0))
+  computed.dt <- aum::aum_errors(diff.df)
+  exp.dt <- data.table(
+    example=as.integer(c(0,0,0,1,1)),
+    min.pred=c(-Inf,1,2,-Inf,3),
+    max.pred=c(1,2,Inf,3,Inf),
+    fp=c(0,0,1,0,1),
+    fn=c(1,0,0,0,0))
+  expect_equal(computed.dt, exp.dt)
+})
