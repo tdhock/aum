@@ -10,7 +10,7 @@ class Totals{
   Totals();
 };
 
-int aum
+int aum_map
   (const double *err_pred,
    const double *err_fp,
    const double *err_fn,
@@ -20,6 +20,25 @@ int aum
    const int pred_N,
    //inputs above, outputs below.
    double *out_thresh,
+   double *out_aum,
+   double *out_deriv_mat
+   );
+
+int aum_sort
+  (const double *err_pred,
+   const double *err_fp,
+   const double *err_fn,
+   const int *err_example,
+   const int err_N,
+   const double *pred_vec,
+   const int pred_N,
+   //inputs above, outputs below.
+   int *out_indices,
+   double *out_thresh,
+   double *out_fp_before,
+   double *out_fp_after,
+   double *out_fn_before,
+   double *out_fn_after,
    double *out_aum,
    double *out_deriv_mat
    );

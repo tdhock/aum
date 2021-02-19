@@ -24,7 +24,8 @@ library(data.table)
 nb.err <- data.table(neuroblastomaProcessed$errors)
 nb.err[, example := paste0(profile.id, ".", chromosome)]
 nb.X <- neuroblastomaProcessed$feature.mat
-(N.pred.vec <- as.integer(10^seq(1, 3, by=0.5)))
+max.log <- if(interactive())3.5 else 3
+(N.pred.vec <- as.integer(10^seq(1, max.log, by=0.5)))
 timing.dt.list <- list()
 for(N.pred in N.pred.vec){
   N.pred.names <- rownames(nb.X)[1:N.pred]
@@ -81,3 +82,83 @@ different --- linear for penaltyLearning (due to use of radix sort in
 data.table), log-linear for aum (due to use of C++ STL Map). Exercise
 for the reader: implement aum computation using radix sort, add its
 timings to this figure.
+
+
+### Synthetic data
+
+```{r}
+library(data.table)
+max.N <- if(interactive())1e6 else 1e5
+(N.pred.vec <- as.integer(10^seq(1, log10(max.N), by=0.5)))
+max.y.vec <- rep(c(0,1), l=max.N)
+max.diffs.dt <- aum::aum_diffs_binary(max.y.vec)
+set.seed(1)
+max.pred.vec <- rnorm(max.N)
+timing.dt.list <- list()
+for(N.pred in N.pred.vec){
+  print(N.pred)
+  N.diffs.dt <- max.diffs.dt[1:N.pred]
+  N.pred.vec <- max.pred.vec[1:N.pred]
+  timing.df <- microbenchmark::microbenchmark(stl_sort={
+    aum:::stl_sort(N.pred.vec)
+  }, stl_set_insert={
+    aum:::stl_set_insert(N.pred.vec)
+  }, dt_sort={
+    N.diffs.dt[order(N.pred.vec)]
+  }, R_sort_radix={
+    sort(N.pred.vec, method="radix")
+  }, R_sort_quick={
+    sort(N.pred.vec, method="quick")
+  }, aum={
+    aum.list <- aum::aum(N.diffs.dt, N.pred.vec)
+  }, times=10)
+  timing.dt.list[[paste(N.pred)]] <- with(timing.df, data.table(
+    package=expr, N.pred, seconds=time/1e9))
+}
+(timing.dt <- do.call(rbind, timing.dt.list))
+
+```
+
+Below we summarize and plot these timings.
+
+```{r}
+stats.dt <- timing.dt[, .(
+  q25=quantile(seconds, 0.25),
+  median=median(seconds),
+  q75=quantile(seconds, 0.75)
+), by=.(package, N.pred)]
+library(ggplot2)
+gg <- ggplot()+
+  geom_line(aes(
+    N.pred, median, color=package),
+    data=stats.dt)+
+  geom_ribbon(aes(
+    N.pred, ymin=q25, ymax=q75, fill=package),
+    data=stats.dt,
+    alpha=0.5)+
+  scale_x_log10(limits=stats.dt[, c(min(N.pred), max(N.pred)*5)])+
+  scale_y_log10()
+directlabels::direct.label(gg, "right.polygons")
+
+```
+
+From the plot above we can see that both packages have similar
+asymptotic time complexity. However aum is faster by
+orders of magnitude (speedups shown below).
+
+```{r}
+stats.wide <- data.table::dcast(
+  stats.dt, N.pred ~ package, value.var = "median")
+stats.tall <- data.table::melt(stats.wide, id.vars=c("N.pred", "aum"))
+stats.tall[, speedup := aum/value][]
+gg <- ggplot()+
+  geom_line(aes(
+    N.pred, speedup, color=variable),
+    data=stats.tall)+
+  scale_x_log10(limits=stats.dt[, c(min(N.pred), max(N.pred)*5)])+
+  scale_y_log10()
+directlabels::direct.label(gg, "right.polygons")
+data.table::dcast(stats.tall, N.pred ~ variable, value.var="speedup")
+
+```
+
