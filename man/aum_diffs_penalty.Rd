@@ -6,7 +6,7 @@ is for penalized optimal changepoint models, for which small
 penalty values result in large fp/fn, and large penalty values
 result in small fp/fn.}
 \usage{aum_diffs_penalty(errors.df, 
-    pred.name.vec)}
+    pred.name.vec, denominator = "count")}
 \arguments{
   \item{errors.df}{data.frame which describes error as a function of penalty/lambda,
 with at least columns example, min.lambda, fp, fn. Interpreted as
@@ -14,6 +14,7 @@ follows: fp/fn occur from all penalties from min.lambda to the
 next value of min.lambda within the current value of example.}
   \item{pred.name.vec}{Character vector of prediction example names, used to convert
 names of label.vec to integers.}
+  \item{denominator}{Type of diffs, either "count" or "rate".}
 }
 
 \value{data table of error diffs which can be used as input to the \code{\link{aum}}
@@ -34,6 +35,8 @@ simple.df <- data.frame(
   fn=c(0,1,1,5))
 (simple.diffs <- aum::aum_diffs_penalty(simple.df))
 if(requireNamespace("ggplot2"))plot(simple.diffs)
+(simple.rates <- aum::aum_diffs_penalty(simple.df, denominator="rate"))
+if(requireNamespace("ggplot2"))plot(simple.rates)
 
 ## Simple real data with four example, one has non-monotonic fn.
 if(requireNamespace("penaltyLearning")){

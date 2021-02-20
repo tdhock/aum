@@ -1,11 +1,11 @@
 Package: aum
 Type: Package
 Title: Area Under Minimum of False Positives and Negatives
-Version: 2021.2.16
+Version: 2021.2.20
 Author: Toby Dylan Hocking
 Maintainer: Toby Dylan Hocking <toby.hocking@r-project.org>
-Description: Standard template library 
- containers are used to implement an efficient AUM 
+Description: Standard template library sort and
+ container are used to implement an efficient AUM 
  algorithm.
 License: GPL-3
 LinkingTo: Rcpp

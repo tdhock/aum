@@ -157,7 +157,7 @@ aum_diffs_penalty <- structure(function
   denominator="count"
 ### Type of diffs, either "count" or "rate".
 ){
-  example <- min.lambda <- fp <- fn <- NULL
+  example <- min.lambda <- fp <- fn <- n.zero <- more <- NULL
   ## Above to silence CRAN check NOTE.
   for(cname in c("fp", "fn", "min.lambda")){
     if(!is.numeric(errors.df[[cname]])){

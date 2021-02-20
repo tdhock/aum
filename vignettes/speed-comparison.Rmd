@@ -84,7 +84,7 @@ for the reader: implement aum computation using radix sort, add its
 timings to this figure.
 
 
-### Synthetic data
+## Synthetic data
 
 ```{r}
 library(data.table)
@@ -109,8 +109,10 @@ for(N.pred in N.pred.vec){
     sort(N.pred.vec, method="radix")
   }, R_sort_quick={
     sort(N.pred.vec, method="quick")
-  }, aum={
-    aum.list <- aum::aum(N.diffs.dt, N.pred.vec)
+  }, aum_map={
+    aum.list <- aum:::aum_map_interface(N.diffs.dt, N.pred.vec)
+  }, aum_sort={
+    aum.list <- aum:::aum_sort_interface(N.diffs.dt, N.pred.vec)
   }, times=10)
   timing.dt.list[[paste(N.pred)]] <- with(timing.df, data.table(
     package=expr, N.pred, seconds=time/1e9))
@@ -149,8 +151,8 @@ orders of magnitude (speedups shown below).
 ```{r}
 stats.wide <- data.table::dcast(
   stats.dt, N.pred ~ package, value.var = "median")
-stats.tall <- data.table::melt(stats.wide, id.vars=c("N.pred", "aum"))
-stats.tall[, speedup := aum/value][]
+stats.tall <- data.table::melt(stats.wide, id.vars=c("N.pred", "aum_sort"))
+stats.tall[, speedup := aum_sort/value][]
 gg <- ggplot()+
   geom_line(aes(
     N.pred, speedup, color=variable),

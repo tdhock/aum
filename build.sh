@@ -5,7 +5,7 @@ PKG=$(grep $PREGEX DESCRIPTION|sed "s/$PREGEX//")
 echo Package from DESCRIPTION: $PKG
 R -e "if(require(Rcpp))compileAttributes('.')"
 R -e "if(require(inlinedocs))package.skeleton.dx('.')"
-rm -f man/aum_interface.Rd 
+rm -f man/aum_sort_interface.Rd man/stl_set_insert.Rd man/stl_sort.Rd man/aum_map_interface.Rd 
 cd ..
 
 RELEASE=$PKG-release

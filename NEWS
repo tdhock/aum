@@ -2,6 +2,13 @@ TODOs
 
 vignette comparing logistic regression to aum minimization?
 
+2021.2.20
+
+error checking for min.lambda values input to aum_diffs_penalty.
+
+new aum_sort_interface C++ function (faster), older function renamed
+to aum_map_interface.
+
 2021.2.16
 
 aum supports names for predictions (copied to row names of
