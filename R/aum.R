@@ -13,7 +13,7 @@ aum <- structure(function
   pred.vec
 ### numeric vector of N predicted values.
 ){
-  L <- aum_interface(error.diff.df, pred.vec)
+  L <- aum_sort_interface(error.diff.df, pred.vec)
   rownames(L[["derivative_mat"]]) <- names(pred.vec)
   L
 ### Named list of two items: aum is numeric scalar loss value,

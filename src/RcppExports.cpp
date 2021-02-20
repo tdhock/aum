@@ -5,21 +5,58 @@
 
 using namespace Rcpp;
 
-// aum_interface
-Rcpp::List aum_interface(const Rcpp::DataFrame err_df, const Rcpp::NumericVector pred_vec);
-RcppExport SEXP _aum_aum_interface(SEXP err_dfSEXP, SEXP pred_vecSEXP) {
+// stl_sort
+Rcpp::NumericVector stl_sort(Rcpp::NumericVector x);
+RcppExport SEXP _aum_stl_sort(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(stl_sort(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// stl_set_insert
+Rcpp::NumericVector stl_set_insert(Rcpp::NumericVector x);
+RcppExport SEXP _aum_stl_set_insert(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(stl_set_insert(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aum_map_interface
+Rcpp::List aum_map_interface(const Rcpp::DataFrame err_df, const Rcpp::NumericVector pred_vec);
+RcppExport SEXP _aum_aum_map_interface(SEXP err_dfSEXP, SEXP pred_vecSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type err_df(err_dfSEXP);
     Rcpp::traits::input_parameter< const Rcpp::NumericVector >::type pred_vec(pred_vecSEXP);
-    rcpp_result_gen = Rcpp::wrap(aum_interface(err_df, pred_vec));
+    rcpp_result_gen = Rcpp::wrap(aum_map_interface(err_df, pred_vec));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aum_sort_interface
+Rcpp::List aum_sort_interface(const Rcpp::DataFrame err_df, const Rcpp::NumericVector pred_vec);
+RcppExport SEXP _aum_aum_sort_interface(SEXP err_dfSEXP, SEXP pred_vecSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type err_df(err_dfSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector >::type pred_vec(pred_vecSEXP);
+    rcpp_result_gen = Rcpp::wrap(aum_sort_interface(err_df, pred_vec));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_aum_aum_interface", (DL_FUNC) &_aum_aum_interface, 2},
+    {"_aum_stl_sort", (DL_FUNC) &_aum_stl_sort, 1},
+    {"_aum_stl_set_insert", (DL_FUNC) &_aum_stl_set_insert, 1},
+    {"_aum_aum_map_interface", (DL_FUNC) &_aum_aum_map_interface, 2},
+    {"_aum_aum_sort_interface", (DL_FUNC) &_aum_aum_sort_interface, 2},
     {NULL, NULL, 0}
 };
 
