@@ -169,6 +169,25 @@ aum_diffs_penalty <- structure(function
     stop("errors.df must have integer or character column named example")
   }
   err.dt <- as.data.table(errors.df)[order(example, -min.lambda)]
+  prob.dt <- err.dt[, {
+    tab <- table(min.lambda)
+    data.table(
+      n.zero=sum(min.lambda==0),
+      more=paste(names(tab)[1 < tab], collapse=","))
+  }, by=example]
+  no.zero <- prob.dt[n.zero < 1]
+  if(nrow(no.zero)){
+    stop(
+      "need min.lambda=0 for each example, problems: ",
+      paste(no.zero$example, collapse=","))
+  }
+  more.dt <- prob.dt[more != ""]
+  if(nrow(more.dt)){
+    bad.ex.vec <- more.dt[, paste0(example, ":", more)]
+    stop(
+      "need only one min.lambda per example, problems with more are (example:min.lambda) ",
+      paste(bad.ex.vec, collapse=" "))
+  }
   if(identical(denominator, "rate")){
     err.dt[, `:=`(max.fp=max(fp), max.fn=max(fn)), by=example]
   }

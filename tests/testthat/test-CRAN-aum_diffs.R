@@ -91,18 +91,36 @@ test_that("error if min.lambda does not start at 0", {
     fn=c(0,2,2,10))
   expect_error({
     aum::aum_diffs_penalty(simple.df, denominator="count")
-  }, "should have min.lambda=0 for each example")
+  }, "need min.lambda=0 for each example, problems: 1")
+})
+
+test_that("error if min.lambda repeated", {
+  simple.df <- data.frame(
+    example=1L,
+    min.lambda=c(0, 1, 1, 2),
+    fp=c(10,4,4,0),
+    fn=c(0,2,2,10))
+  expect_error({
+    aum::aum_diffs_penalty(simple.df, denominator="count")
+  },
+  "need only one min.lambda per example, problems with more are (example:min.lambda) 1:1",
+  fixed=TRUE)
 })
 
 test_that("rate works", {
   simple.df <- data.frame(
     example=1L,
-    min.lambda=exp(1:4),
+    min.lambda=c(0, exp(1:3)),
     fp=c(10,4,4,0),
     fn=c(0,2,2,10))
   (simple.diffs <- aum::aum_diffs_penalty(simple.df, denominator="count"))
-  expect_equal(
+  expect_equal(simple.diffs$pred, c(-3, -1))
+  expect_equal(simple.diffs$fp_diff, c(4, 6))
+  expect_equal(simple.diffs$fn_diff, c(-8, -2))
   (simple.rates <- aum::aum_diffs_penalty(simple.df, denominator="rate"))
+  expect_equal(simple.rates$pred, c(-3, -1))
+  expect_equal(simple.rates$fp_diff, c(0.4, 0.6))
+  expect_equal(simple.rates$fn_diff, c(-0.8, -0.2))
 })
 
 test_that("aum_errors works even if input not sorted", {
