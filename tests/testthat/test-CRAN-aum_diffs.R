@@ -83,6 +83,28 @@ test_that("error for columns in penalty error", {
   }, "errors.df must have integer or character column named example")
 })
 
+test_that("error if min.lambda does not start at 0", {
+  simple.df <- data.frame(
+    example=1L,
+    min.lambda=exp(1:4),
+    fp=c(10,4,4,0),
+    fn=c(0,2,2,10))
+  expect_error({
+    aum::aum_diffs_penalty(simple.df, denominator="count")
+  }, "should have min.lambda=0 for each example")
+})
+
+test_that("rate works", {
+  simple.df <- data.frame(
+    example=1L,
+    min.lambda=exp(1:4),
+    fp=c(10,4,4,0),
+    fn=c(0,2,2,10))
+  (simple.diffs <- aum::aum_diffs_penalty(simple.df, denominator="count"))
+  expect_equal(
+  (simple.rates <- aum::aum_diffs_penalty(simple.df, denominator="rate"))
+})
+
 test_that("aum_errors works even if input not sorted", {
   diff.df <- data.frame(
     example=as.integer(c(0, 0, 1)),

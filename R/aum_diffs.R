@@ -88,9 +88,11 @@ aum_diffs_binary <- structure(function
 (label.vec,
 ### Numeric vector representing binary labels (either all 0,1 or all
 ### -1,1). If named, names are used to identify each example.
-  pred.name.vec
+  pred.name.vec,
 ### Character vector of prediction example names, used to convert
 ### names of label.vec to integers.
+  denominator="count"
+### Type of diffs, either "count" or "rate".
 ){
   allin <- function(...)all(label.vec %in% c(...))
   if(!all(
@@ -101,7 +103,7 @@ aum_diffs_binary <- structure(function
   )){
     stop("label.vec must be numeric vector with length>0 and all elements either 0,1 or -1,1")
   }
-  label.vec[label.vec==0] <- -1
+  is.positive <- label.vec==1
   example <- if(is.null(names(label.vec))){
     seq(0, length(label.vec)-1)
   }else{
@@ -115,11 +117,18 @@ aum_diffs_binary <- structure(function
     }
     n.vec
   }
+  if(identical(denominator, "rate")){
+    fp.denom <- sum(!is.positive)
+    fn.denom <- sum(is.positive)
+  }else{
+    fp.denom <- 1
+    fn.denom <- 1
+  }
   aum_diffs(
     example,
     0,
-    ifelse(label.vec==1,  0, 1),
-    ifelse(label.vec==1, -1, 0),
+    ifelse(is.positive,  0, 1)/fp.denom,
+    ifelse(is.positive, -1, 0)/fn.denom,
     pred.name.vec)
 ### data.frame of error diffs which can be used as input to the aum
 ### function.
@@ -127,7 +136,8 @@ aum_diffs_binary <- structure(function
 
   aum_diffs_binary(c(0,1))
   aum_diffs_binary(c(-1,1))
-  aum_diffs_binary(c(a=0,b=1,c=0), c("c","b"))
+  aum_diffs_binary(c(a=0,b=1,c=0), pred.name.vec=c("c","b"))
+  aum_diffs_binary(c(0,0,1,1,1), denominator="rate")
 
 })
 
@@ -141,9 +151,11 @@ aum_diffs_penalty <- structure(function
 ### with at least columns example, min.lambda, fp, fn. Interpreted as
 ### follows: fp/fn occur from all penalties from min.lambda to the
 ### next value of min.lambda within the current value of example.
-  pred.name.vec
+  pred.name.vec,
 ### Character vector of prediction example names, used to convert
 ### names of label.vec to integers.
+  denominator="count"
+### Type of diffs, either "count" or "rate".
 ){
   example <- min.lambda <- fp <- fn <- NULL
   ## Above to silence CRAN check NOTE.
@@ -156,7 +168,11 @@ aum_diffs_penalty <- structure(function
   if(!(is.integer(e) || is.character(e))){
     stop("errors.df must have integer or character column named example")
   }
-  with(as.data.table(errors.df)[order(example, -min.lambda)], {
+  err.dt <- as.data.table(errors.df)[order(example, -min.lambda)]
+  if(identical(denominator, "rate")){
+    err.dt[, `:=`(max.fp=max(fp), max.fn=max(fn)), by=example]
+  }
+  with(err.dt, {
     is.end <- min.lambda == 0
     mydiff <- function(x){
       ifelse(is.end, 0, diff(x))
@@ -164,11 +180,18 @@ aum_diffs_penalty <- structure(function
     fp_diff <- mydiff(fp)
     fn_diff <- mydiff(fn)
     keep <- fp_diff != 0 | fn_diff != 0
+    if(identical(denominator, "rate")){
+      fp.denom <- max.fp[keep]
+      fn.denom <- max.fn[keep]
+    }else{
+      fp.denom <- 1
+      fn.denom <- 1
+    }
     aum_diffs(
       example[keep],
       -log(min.lambda[keep]),
-      fp_diff[keep],
-      fn_diff[keep],
+      fp_diff[keep]/fp.denom,
+      fn_diff[keep]/fn.denom,
       pred.name.vec)
   })
 ### data table of error diffs which can be used as input to the aum
@@ -183,6 +206,8 @@ aum_diffs_penalty <- structure(function
     fn=c(0,1,1,5))
   (simple.diffs <- aum::aum_diffs_penalty(simple.df))
   if(requireNamespace("ggplot2"))plot(simple.diffs)
+  (simple.rates <- aum::aum_diffs_penalty(simple.df, denominator="rate"))
+  if(requireNamespace("ggplot2"))plot(simple.rates)
 
   ## Simple real data with four example, one has non-monotonic fn.
   if(requireNamespace("penaltyLearning")){
