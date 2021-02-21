@@ -1,5 +1,6 @@
 #include <Rcpp.h>
-#include "aum.h"
+#include "aum_sort.h"
+#include "aum_map.h"
 
 // [[Rcpp::export]]
 Rcpp::NumericVector stl_sort(Rcpp::NumericVector x) {
@@ -36,7 +37,6 @@ Rcpp::List aum_map_interface
   Rcpp::NumericVector err_fn_diff = err_df["fn_diff"];
   Rcpp::IntegerVector err_example = err_df["example"];
   int err_N = err_df.nrow();
-  Rcpp::NumericVector out_thresh(err_N);
   Rcpp::NumericVector out_aum(1);
   Rcpp::NumericMatrix out_deriv_mat(pred_N, 2);
   int status = aum_map
@@ -48,21 +48,20 @@ Rcpp::List aum_map_interface
      &pred_vec[0],
      pred_vec.size(),
      //inputs above, outputs below.
-     &out_thresh[0],
      &out_aum[0], &out_deriv_mat[0]);
-  if(status == ERROR_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS){
+  if(status == ERROR_AUM_MAP_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS){
     Rcpp::stop("example should be less than number of predictions"); 
   }
-  if(status == ERROR_EXAMPLE_SHOULD_BE_NON_NEGATIVE){
+  if(status == ERROR_AUM_MAP_EXAMPLE_SHOULD_BE_NON_NEGATIVE){
     Rcpp::stop("example should be non-negative");
   }
-  if(status == ERROR_FN_SHOULD_BE_NON_NEGATIVE){
+  if(status == ERROR_AUM_MAP_FN_SHOULD_BE_NON_NEGATIVE){
     Rcpp::stop("fn should be non-negative"); 
   }
-  if(status == ERROR_FP_SHOULD_BE_NON_NEGATIVE){
+  if(status == ERROR_AUM_MAP_FP_SHOULD_BE_NON_NEGATIVE){
     Rcpp::stop("fp should be non-negative"); 
   }
-  if(status == ERROR_ALL_PREDICTIONS_SHOULD_BE_FINITE){
+  if(status == ERROR_AUM_MAP_ALL_PREDICTIONS_SHOULD_BE_FINITE){
     Rcpp::stop("all predictions should be finite");
   }
   return Rcpp::List::create
@@ -84,6 +83,12 @@ Rcpp::List aum_sort_interface
   Rcpp::NumericVector err_fn_diff = err_df["fn_diff"];
   Rcpp::IntegerVector err_example = err_df["example"];
   int err_N = err_df.nrow();
+  Rcpp::IntegerVector out_indices(err_N);
+  Rcpp::NumericVector out_thresh(err_N);
+  Rcpp::NumericVector out_fp_before(err_N);
+  Rcpp::NumericVector out_fp_after(err_N);
+  Rcpp::NumericVector out_fn_before(err_N);
+  Rcpp::NumericVector out_fn_after(err_N);
   Rcpp::NumericVector out_aum(1);
   Rcpp::NumericMatrix out_deriv_mat(pred_N, 2);
   int status = aum_sort
@@ -95,20 +100,27 @@ Rcpp::List aum_sort_interface
      &pred_vec[0],
      pred_vec.size(),
      //inputs above, outputs below.
-     &out_aum[0], &out_deriv_mat[0]);
-  if(status == ERROR_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS){
+     &out_indices[0],
+     &out_thresh[0],
+     &out_fp_before[0],
+     &out_fp_after[0],
+     &out_fn_before[0],
+     &out_fn_after[0],
+     &out_aum[0],
+     &out_deriv_mat[0]);
+  if(status == ERROR_AUM_SORT_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS){
     Rcpp::stop("example should be less than number of predictions"); 
   }
-  if(status == ERROR_EXAMPLE_SHOULD_BE_NON_NEGATIVE){
+  if(status == ERROR_AUM_SORT_EXAMPLE_SHOULD_BE_NON_NEGATIVE){
     Rcpp::stop("example should be non-negative");
   }
-  if(status == ERROR_FN_SHOULD_BE_NON_NEGATIVE){
+  if(status == ERROR_AUM_SORT_FN_SHOULD_BE_NON_NEGATIVE){
     Rcpp::stop("fn should be non-negative"); 
   }
-  if(status == ERROR_FP_SHOULD_BE_NON_NEGATIVE){
+  if(status == ERROR_AUM_SORT_FP_SHOULD_BE_NON_NEGATIVE){
     Rcpp::stop("fp should be non-negative"); 
   }
-  if(status == ERROR_ALL_PREDICTIONS_SHOULD_BE_FINITE){
+  if(status == ERROR_AUM_SORT_ALL_PREDICTIONS_SHOULD_BE_FINITE){
     Rcpp::stop("all predictions should be finite");
   }
   return Rcpp::List::create

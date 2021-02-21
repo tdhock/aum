@@ -7,7 +7,7 @@ vignette comparing logistic regression to aum minimization?
 error checking for min.lambda values input to aum_diffs_penalty.
 
 new aum_sort_interface C++ function (faster), older function renamed
-to aum_map_interface.
+to aum_map_interface, separate source and header files.
 
 2021.2.16
 
