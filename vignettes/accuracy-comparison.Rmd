@@ -1,0 +1,20 @@
+<!--
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Accuracy comparison}
+-->
+
+# Accuracy comparison
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Load data
+
+```{r}
+data(package="mlbench")
+
+```

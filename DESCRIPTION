@@ -17,6 +17,7 @@ Suggests:
     ggplot2,
     penaltyLearning,
     knitr, markdown,
+    mlbench,
     directlabels, microbenchmark,
     covr
 VignetteBuilder: knitr
