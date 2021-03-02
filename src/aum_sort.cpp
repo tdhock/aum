@@ -2,7 +2,7 @@
 #include <math.h>//isfinite
 #include <stdlib.h>//qsort
 
-static __thread double *sort_thresh;
+static double *sort_thresh;
 int compare_indices(const void *left, const void *right){
   return sort_thresh[* (int*)left] > sort_thresh[* (int*)right];
 }

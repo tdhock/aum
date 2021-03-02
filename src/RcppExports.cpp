@@ -51,25 +51,12 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// multithread
-void multithread(const Rcpp::DataFrame err_df, const Rcpp::NumericVector pred_vec, int threads);
-RcppExport SEXP _aum_multithread(SEXP err_dfSEXP, SEXP pred_vecSEXP, SEXP threadsSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type err_df(err_dfSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector >::type pred_vec(pred_vecSEXP);
-    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
-    multithread(err_df, pred_vec, threads);
-    return R_NilValue;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_aum_stl_sort", (DL_FUNC) &_aum_stl_sort, 1},
     {"_aum_stl_set_insert", (DL_FUNC) &_aum_stl_set_insert, 1},
     {"_aum_aum_map_interface", (DL_FUNC) &_aum_aum_map_interface, 2},
     {"_aum_aum_sort_interface", (DL_FUNC) &_aum_aum_sort_interface, 2},
-    {"_aum_multithread", (DL_FUNC) &_aum_multithread, 3},
     {NULL, NULL, 0}
 };
 

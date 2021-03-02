@@ -275,5 +275,3 @@ test_that("no diffs ok", {
   expect_equal(L$derivative_mat[2,], c(0,0))
   expect_equal(L$derivative_mat[3,], c(0,0))
 })
-
-aum:::multithread(models, predictions, 2)
