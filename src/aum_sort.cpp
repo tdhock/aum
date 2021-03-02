@@ -1,11 +1,8 @@
 #include "aum_sort.h"
 #include <math.h>//isfinite
 #include <stdlib.h>//qsort
-#include <stdio.h>//printf
-#include <pthread.h>//pthread_self
 
-//static __thread double *sort_thresh;
-static double *sort_thresh;
+static __thread double *sort_thresh;
 int compare_indices(const void *left, const void *right){
   return sort_thresh[* (int*)left] > sort_thresh[* (int*)right];
 }
@@ -61,7 +58,6 @@ int aum_sort
   }
   // Sort indices by threshold.
   sort_thresh = out_thresh;
-  printf("From the function, the thread id = %d, ptr=%p\n", pthread_self(), &sort_thresh);
   qsort(out_indices, err_N, sizeof(int), compare_indices);
   double cumsum, cumsum_prev;
   const double *fp_or_fn_diff;

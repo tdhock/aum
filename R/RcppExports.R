@@ -17,3 +17,7 @@ aum_sort_interface <- function(err_df, pred_vec) {
     .Call(`_aum_aum_sort_interface`, err_df, pred_vec)
 }
 
+multithread <- function(err_df, pred_vec, threads) {
+    invisible(.Call(`_aum_multithread`, err_df, pred_vec, threads))
+}
+

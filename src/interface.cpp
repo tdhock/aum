@@ -1,6 +1,7 @@
 #include <Rcpp.h>
 #include "aum_sort.h"
 #include "aum_map.h"
+#include <omp.h> 
 
 // [[Rcpp::export]]
 Rcpp::NumericVector stl_sort(Rcpp::NumericVector x) {
@@ -129,3 +130,13 @@ Rcpp::List aum_sort_interface
      ) ;
 }
 
+// [[Rcpp::export]]
+void multithread
+(const Rcpp::DataFrame err_df,
+ const Rcpp::NumericVector pred_vec,
+ int threads){
+#pragma omp parallel for
+  for(int i=0; i<threads; i++){
+    aum_sort_interface(err_df, pred_vec);
+  }
+}
