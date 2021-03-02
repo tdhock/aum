@@ -1,16 +1,16 @@
 #include "aum_sort.h"
 #include <math.h>//isfinite
-#include <stdlib.h>//qsort_r
+#include <stdlib.h>//qsort
 
-int compare_indices(const void *left, const void *right, void *out_ptr){
-  double *out_thresh = (double*) out_ptr;
-  return out_thresh[* (int*)left] > out_thresh[* (int*)right];
+static double *sort_thresh;
+int compare_indices(const void *left, const void *right){
+  return sort_thresh[* (int*)left] > sort_thresh[* (int*)right];
 }
 
 // Main function for computing Area Under Minimum of False Positives
 // and False Negatives. All pointer arguments must be arrays (of size
 // indicated in comments below) that are allocated before calling
-// aum. Since we do qsort_r on err_N elements the time complexity is
+// aum. Since we do qsort on err_N elements the time complexity is
 // O( err_N log err_N ). A C compiler can be used with this code file
 // but the "cpp" suffix is for easy compilation with the other C++
 // code in the R package. This code is slightly faster (by constant
@@ -45,20 +45,20 @@ int aum_sort
       return ERROR_AUM_SORT_ALL_PREDICTIONS_SHOULD_BE_FINITE;
     }
   }
-  for(int row=0; row<err_N; row++){
-    int row_example = err_example[row];
-    if(row_example >= pred_N){
+  for(int err_i=0; err_i<err_N; err_i++){
+    int example = err_example[err_i];
+    if(example >= pred_N){
       return ERROR_AUM_SORT_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS;
     }
-    if(row_example < 0){
+    if(example < 0){
       return ERROR_AUM_SORT_EXAMPLE_SHOULD_BE_NON_NEGATIVE;
     }
-    double pred_val = pred_vec[row_example];
-    out_thresh[row] = err_pred[row] - pred_val;
-    out_indices[row] = row;
+    out_thresh[err_i] = err_pred[err_i] - pred_vec[example];
+    out_indices[err_i] = err_i;
   }
   // Sort indices by threshold.
-  qsort_r(out_indices, err_N, sizeof(int), compare_indices, out_thresh);
+  sort_thresh = out_thresh;
+  qsort(out_indices, err_N, sizeof(int), compare_indices);
   double cumsum, cumsum_prev;
   const double *fp_or_fn_diff;
   double *out_this, *out_prev;
@@ -70,79 +70,81 @@ int aum_sort
       first = err_N - 1;
       sign = -1;
       fp_or_fn_diff = err_fn_diff;
-      out_this = &out_fn_before[0];
-      out_prev = &out_fn_after[0];
+      out_this = out_fn_before;
+      out_prev = out_fn_after;
       err = ERROR_AUM_SORT_FN_SHOULD_BE_NON_NEGATIVE;
     }else{//fp
       first = 0;
       sign = 1;
       fp_or_fn_diff = err_fp_diff;
-      out_this = &out_fp_after[0];
-      out_prev = &out_fp_before[0];
+      out_this = out_fp_after;
+      out_prev = out_fp_before;
       err = ERROR_AUM_SORT_FP_SHOULD_BE_NON_NEGATIVE;
     }
     cumsum = 0.0;
     cumsum_prev = 0.0;
-    int k_prev = 0;
-    for(int k=0; k<err_N; k++){
-      int i = first + sign*k;
-      int row_i = out_indices[i];
-      cumsum += sign * fp_or_fn_diff[row_i];
+    int i_prev = 0;
+    for(int i=0; i<err_N; i++){
+      int rank_i = first + sign*i;
+      int err_i = out_indices[rank_i];
+      int err_before = out_indices[rank_i+sign];
+      cumsum += sign * fp_or_fn_diff[err_i];
       if(cumsum < 0){
 	return err;
       }
-      if(k == err_N-1 || out_thresh[row_i] != out_thresh[out_indices[i+sign]]){
-	for(int j=k_prev; j <= k; j++){
-	  int row_j = out_indices[first+sign*j];
-	  out_this[row_j] = cumsum;
-	  out_prev[row_j] = cumsum_prev;
+      if(i == err_N-1 || out_thresh[err_i] != out_thresh[err_before]){
+	for(int j=i_prev; j <= i; j++){
+	  int rank_j = first + sign*j;
+	  int err_j = out_indices[rank_j];
+	  out_this[err_j] = cumsum;
+	  out_prev[err_j] = cumsum_prev;
 	}
 	cumsum_prev = cumsum;
-	k_prev = k+1;
+	i_prev = i+1;
       }
     }
   }
   // Compute AUM.
-  for(int i=1; i<err_N; i++){
-    int row_i = out_indices[i];
-    int row_before = out_indices[i-1];
-    fp = out_fp_before[row_i];
-    fn = out_fn_before[row_i];
+  for(int rank_i=1; rank_i<err_N; rank_i++){
+    int err_i = out_indices[rank_i];
+    int err_before = out_indices[rank_i-1];
+    fp = out_fp_before[err_i];
+    fn = out_fn_before[err_i];
     if(fp < fn){
       min = fp;
     }else{
       min = fn;
     }
-    *out_aum += min*(out_thresh[row_i] - out_thresh[row_before]);
+    *out_aum += min*(out_thresh[err_i] - out_thresh[err_before]);
   }
   // Compute directional derivatives.
-  for(int row=0; row<err_N; row++){
-    int row_example = err_example[row];
+  for(int err_i=0; err_i<err_N; err_i++){
+    int example = err_example[err_i];
     for(int out_col=0; out_col<2; out_col++){
       if(out_col==0){
 	//for out_col=0, sign=-1, we join using out_thresh = min_thresh,
 	//which means we need to take fp/fn/min from after the iterator.
 	sign = -1;
-	fp = out_fp_after[row];
-	fn = out_fn_after[row];
+	fp = out_fp_after[err_i];
+	fn = out_fn_after[err_i];
       }else{//out_col=1, take before iterator.
 	sign = 1;
-	fp = out_fp_before[row];
-	fn = out_fn_before[row];
+	fp = out_fp_before[err_i];
+	fn = out_fn_before[err_i];
       }
       if(fp < fn){
 	min = fp;
       }else{
 	min = fn;
       }
-      fp_adj = fp + sign*err_fp_diff[row];
-      fn_adj = fn + sign*err_fn_diff[row];
+      fp_adj = fp + sign*err_fp_diff[err_i];
+      fn_adj = fn + sign*err_fn_diff[err_i];
       if(fp_adj < fn_adj){
 	min_adj = fp_adj;
       }else{
 	min_adj = fn_adj;
       }
-      out_deriv_mat[row_example+out_col*pred_N] += sign*(min_adj - min);
+      out_deriv_mat[example+out_col*pred_N] += sign*(min_adj - min);
     }
   }
   return 0;

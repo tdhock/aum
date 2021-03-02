@@ -2,6 +2,10 @@ TODOs
 
 vignette comparing logistic regression to aum minimization?
 
+2021.3.2
+
+Use qsort (standard C) instead of qsort_r (not standard).
+
 2021.2.20
 
 error checking for min.lambda values input to aum_diffs_penalty.
