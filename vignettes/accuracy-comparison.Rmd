@@ -16,5 +16,49 @@ knitr::opts_chunk$set(
 
 ```{r}
 data(package="mlbench")
+```
 
+## Baseline all pairs loss and gradient
+
+```{r}
+N <- 10
+set.seed(1)
+pred.vec <- rnorm(N)
+label.vec <- rep(c(0,1), l=N)
+diff.dt <- aum::aum_diffs_binary(label.vec)
+library(data.table)
+is.positive <- label.vec == 1
+pairs.dt <- data.table(expand.grid(
+  positive=which(is.positive),
+  negative=which(!is.positive)))
+margin <- 1
+loss.list <- list(
+  aum=function(pred.vec){
+    L <- aum::aum(diff.dt, pred.vec)
+    with(L, list(gradient=derivative_mat[,1], loss=aum))
+  },
+  squared.hinge.all.pairs=function(pred.vec){
+    pairs.dt[, diff := pred.vec[positive]-pred.vec[negative]-margin]
+    pairs.dt[, diff.clipped := ifelse(diff<0, diff, 0)]
+    pairs.tall <- data.table::melt(
+      pairs.dt,
+      measure.vars=c("positive", "negative"),
+      value.name="pred.i",
+      variable.name="label")
+    ## d/dx (x - y - m)^2 = x - y - m
+    ## d/dy (x - y - m)^2 = -(x - y - m)
+    pairs.tall[, grad.sign := ifelse(label=="positive", 1, -1)]
+    grad.dt <- pairs.tall[, .(
+      gradient=sum(grad.sign*diff.clipped)
+    ), keyby=pred.i]
+    list(gradient=grad.dt$gradient, loss=sum(pairs.dt$diff.clipped^2))
+  }
+)
+result.list <- list()
+for(loss.name in names(loss.list)){
+  fun <- loss.list[[loss.name]]
+  result.list[[loss.name]] <- fun(pred.vec)
+}
+str(result.list)
+sapply(result.list, "[[", "gradient")
 ```
