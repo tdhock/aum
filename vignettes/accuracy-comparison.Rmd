@@ -47,6 +47,16 @@ subtrain.pairs.dt <- PairsDT(subtrain.output.vec)
 margin <- 1
 ## Note: for efficiency subtrain labels are assumed to be pre-computed
 ## in the enclosing environment, once before the optimization starts.
+equal.class.weights <- function(output.vec){
+  otab <- table(output.vec)
+  as.numeric(1/otab[paste(output.vec)])
+}
+subtrain.obs.weights <- equal.class.weights(subtrain.output.vec)
+Logistic <- function(pred.vec, output.vec, obs.weights){
+  list(
+    gradient=-obs.weights*output.vec/(1+exp(output.vec*pred.vec)),
+    loss=sum(obs.weights*log(1+exp(-output.vec*pred.vec))))
+}
 AUM <- function(pred.vec, diff.dt){
   L <- aum::aum(diff.dt, pred.vec)
   d <- L$derivative_mat
@@ -59,11 +69,13 @@ AUM <- function(pred.vec, diff.dt){
 }  
 loss.list <- list(
   logistic=function(pred.vec, output.vec=subtrain.output.vec, ...){
-    N <- length(pred.vec)
-    list(
-      gradient=-output.vec/(1+exp(output.vec*pred.vec))/N,
-      loss=sum(log(1+exp(-output.vec*pred.vec)))/N)
+    Logistic(pred.vec, output.vec, 1/length(pred.vec))
   },
+  logistic.weighted=
+    function(pred.vec, output.vec=subtrain.output.vec,
+             obs.weights=subtrain.obs.weights, ...){
+      Logistic(pred.vec, output.vec, obs.weights)
+    },
   aum.count=function(pred.vec, diff.count.dt=subtrain.diff.count.dt, ...){
     AUM(pred.vec, diff.count.dt)
   },
@@ -85,7 +97,9 @@ loss.list <- list(
     grad.dt <- pairs.tall[, .(
       gradient=sum(grad.sign*diff.clipped)
     ), keyby=pred.i]
-    list(gradient=grad.dt$gradient/N.pairs, loss=sum(pairs.dt$diff.clipped^2)/N.pairs)
+    list(
+      gradient=grad.dt$gradient/N.pairs,
+      loss=sum(pairs.dt$diff.clipped^2)/N.pairs)
   }
 )
 result.list <- list()
@@ -101,157 +115,111 @@ sapply(result.list, "[[", "gradient")
 
 ```{r}
 out.loss.list <- list()
-for(data.name in names(data.list)[1]){
-  input.output.list <- data.list[[data.name]]
-  input.mat <- input.output.list[["input.mat"]]
-  full.input.mat <- scale(input.mat)
-  full.output.vec <- input.output.list[["output.vec"]]
-  stopifnot(full.output.vec %in% c(-1, 1))
-  set.seed(1)
-  n.folds <- 4
-  unique.folds <- 1:n.folds
-  fold.vec <- sample(rep(unique.folds, l=length(full.output.vec)))
-  for(validation.fold in unique.folds[1]){
-    is.set.list <- list(
-      validation=fold.vec == validation.fold,
-      subtrain=fold.vec != validation.fold)
-    set.data.list <- list()
-    for(set.name in names(is.set.list)){
-      is.set <- is.set.list[[set.name]]
-      output.vec <- full.output.vec[is.set]
-      set.data.list[[set.name]] <- list(
-        output.vec=output.vec,
-        input.mat=full.input.mat[is.set,],
-        diff.rate.dt=aum::aum_diffs_binary(output.vec, denominator="rate"),
-        diff.count.dt=aum::aum_diffs_binary(output.vec, denominator="count"),
-        pairs.dt=PairsDT(output.vec))
-    }
-    X.mat <- set.data.list$subtrain$input.mat
-    for(loss.name in names(loss.list)){
-      loss.grad.fun <- loss.list[[loss.name]]
-      step.candidates <- 10^seq(-2, 2, by=0.25)
-      for(step.size in step.candidates){
-        set.seed(1)
-        weight.vec <- rnorm(ncol(X.mat))
-        done <- FALSE
-        iteration <- 0
-        prev.set.loss.vec <- rep(1e10, 2)
-        while(!done){
-          iteration <- iteration+1
-          loss.for.weight <- function(w, set.data=set.data.list$subtrain){
-            pred <- set.data$input.mat %*% w
-            set.data$pred.vec <- pred
-            out <- do.call(loss.grad.fun, set.data)
-            out$pred <- pred
-            out
-          }
-          loss.before.step <- loss.for.weight(weight.vec)
-          direction <- -t(X.mat) %*% loss.before.step[["gradient"]]
-          loss.for.step <- function(step.size){
-            new.weight <- weight.vec + step.size * direction
-            out <- loss.for.weight(new.weight)
-            out$new.weight <- new.weight
-            out$step.size <- step.size
-            out
-          }
-          loss.after.step <- loss.for.step(step.size)
-          weight.vec <- loss.after.step[["new.weight"]]
-          set.loss.vec <- numeric()
-          for(set.name in names(set.data.list)){
-            set.data <- set.data.list[[set.name]]
-            set.loss <- loss.for.weight(weight.vec, set.data)
-            set.loss.vec[[set.name]] <- set.loss[["loss"]]
-            roc.df <- WeightedROC::WeightedROC(set.loss[["pred"]], set.data[["output.vec"]])
-            auc <- WeightedROC::WeightedAUC(roc.df)
-            out.dt <- data.table(
-              data.name, validation.fold, loss.name, step.size, iteration, set.name,
-              auc,
-              loss.value=set.loss$loss)
-            for(aum.type in c("count", "rate")){
-              diff.name <- paste0("diff.", aum.type, ".dt")
-              aum.list <- aum::aum(set.data[[diff.name]], set.loss[["pred"]])
-              out.col <- paste0("aum.", aum.type)
-              out.dt[[out.col]] <- aum.list[["aum"]]
-            }
-            out.loss.list[[paste(
-              data.name, validation.fold, loss.name, step.size, iteration, set.name
-            )]] <- out.dt
-          }#for(set.name
-          diff.set.loss.vec <- set.loss.vec - prev.set.loss.vec
-          max.inc.iterations <- 10
-          valid.increasing.iterations <- if(!is.finite(diff.set.loss.vec[["validation"]])){
-            max.inc.iterations
-          }else if(0 <= diff.set.loss.vec[["validation"]]){
-            cat(sprintf(
-              "data=%s fold=%d loss=%s step=%f it=%d non-dec-iterations=%d\n",
-              data.name, validation.fold, loss.name, step.size, iteration,
-              valid.increasing.iterations))
-            valid.increasing.iterations+1
-          }else{
-            0
-          }
-          if(
-            max.inc.iterations <= valid.increasing.iterations
-            || loss.after.step$step.size == 0
-            || 1000 < iteration
-          ){
-            done <- TRUE
-          }
-          prev.set.loss.vec <- set.loss.vec
-        }#while(!done
-      }#for(step.size
-    }#for(loss.name
-  }#for(validation.fold
+data.name <- "Sonar"
+input.output.list <- data.list[[data.name]]
+input.mat <- input.output.list[["input.mat"]]
+full.input.mat <- scale(input.mat)
+full.output.vec <- input.output.list[["output.vec"]]
+stopifnot(full.output.vec %in% c(-1, 1))
+set.seed(1)
+n.folds <- 2
+unique.folds <- 1:n.folds
+fold.vec <- sample(rep(unique.folds, l=length(full.output.vec)))
+validation.fold <- 1
+is.set.list <- list(
+  validation=fold.vec == validation.fold,
+  subtrain=fold.vec != validation.fold)
+set.data.list <- list()
+for(set.name in names(is.set.list)){
+  is.set <- is.set.list[[set.name]]
+  output.vec <- full.output.vec[is.set]
+  set.data.list[[set.name]] <- list(
+    output.vec=output.vec,
+    obs.weights=equal.class.weights(output.vec),
+    input.mat=full.input.mat[is.set,],
+    diff.rate.dt=aum::aum_diffs_binary(output.vec, denominator="rate"),
+    diff.count.dt=aum::aum_diffs_binary(output.vec, denominator="count"),
+    pairs.dt=PairsDT(output.vec))
 }
+X.mat <- set.data.list$subtrain$input.mat
+for(loss.name in names(loss.list)){
+  loss.grad.fun <- loss.list[[loss.name]]
+  step.size <- 0.1
+  cat(sprintf("loss=%s\n", loss.name))
+  set.seed(1)
+  weight.vec <- last.w <- rnorm(ncol(X.mat))
+  done <- FALSE
+  iteration <- 0
+  prev.set.loss.vec <- rep(1e10, 2)
+  while(!done){
+    iteration <- iteration+1
+    loss.for.weight <- function(w, set.data=set.data.list$subtrain){
+      pred <- set.data$input.mat %*% w
+      set.data$pred.vec <- pred
+      out <- do.call(loss.grad.fun, set.data)
+      out$pred <- pred
+      out
+    }
+    loss.before.step <- loss.for.weight(weight.vec)
+    direction <- -t(X.mat) %*% loss.before.step[["gradient"]]
+    loss.for.step <- function(step.size){
+      new.weight <- weight.vec + step.size * direction
+      out <- loss.for.weight(new.weight)
+      out$new.weight <- new.weight
+      out$step.size <- step.size
+      out
+    }
+    loss.after.step <- loss.for.step(step.size)
+    weight.vec <- loss.after.step[["new.weight"]]
+    diff.w <- sum(abs(weight.vec-last.w))
+    last.w <- weight.vec
+    set.loss.vec <- numeric()
+    for(set.name in names(set.data.list)){
+      set.data <- set.data.list[[set.name]]
+      set.loss <- loss.for.weight(weight.vec, set.data)
+      set.loss.vec[[set.name]] <- set.loss[["loss"]]
+      roc.df <- WeightedROC::WeightedROC(
+        set.loss[["pred"]],
+        set.data[["output.vec"]])
+      auc <- WeightedROC::WeightedAUC(roc.df)
+      out.dt <- data.table(
+        loss.name,
+        iteration,
+        set.name,
+        auc,
+        loss.value=set.loss$loss)
+      for(aum.type in c("count", "rate")){
+        diff.name <- paste0("diff.", aum.type, ".dt")
+        aum.list <- aum::aum(set.data[[diff.name]], set.loss[["pred"]])
+        out.col <- paste0("aum.", aum.type)
+        out.dt[[out.col]] <- aum.list[["aum"]]
+      }
+      out.loss.list[[paste(
+        loss.name,
+        iteration,
+        set.name
+      )]] <- out.dt
+      if(2000 < iteration || diff.w < 1e-6){
+        done <- TRUE
+      }
+    }#for(set.name
+  }#while(!done
+}#for(loss.name
 
 out.loss <- do.call(rbind, out.loss.list)
-out.loss[, max.it := max(iteration), by=.(loss.name, step.size)]
+(max.valid.auc <- out.loss[
+  set.name=="validation",
+  .SD[which.max(auc), .(iteration, auc, set.name)],
+  by=.(loss.name)])
 library(ggplot2)
-ggplot()+
-  geom_line(aes(
-    iteration/max.it, auc, color=set.name),
+ggplot(,aes(
+  iteration, auc, color=set.name))+
+  geom_line(
     data=out.loss)+
-  facet_grid(step.size ~ loss.name)
-
-ggplot()+
-  geom_line(aes(
-    iteration/max.it, aum.count, color=set.name),
-    data=out.loss)+
-  facet_grid(step.size ~ loss.name)
-
-ggplot()+
-  geom_line(aes(
-    iteration/max.it, aum.rate, color=set.name),
-    data=out.loss)+
-  facet_grid(step.size ~ loss.name)
-
-ggplot()+
-  geom_line(aes(
-    iteration/max.it, loss.value, color=set.name),
-    data=out.loss)+
-  facet_grid(loss.name ~ step.size, scales="free")
-
-ggplot()+
-  geom_line(aes(
-    iteration, loss.value, color=set.name),
-    data=out.loss)+
-  facet_grid(loss.name ~ step.size, scales="free")
-
-(opt.valid.dt <- out.loss[set.name=="validation", .(
-  auc=max(auc),
-  loss=min(loss.value),
-  aum.count=min(aum.count),
-  aum.rate=min(aum.rate)
-), by=loss.name])
-
-out.loss[
-  set.name=="validation",
-  .SD[which.max(auc), .(step.size, iteration)],
-  by=loss.name]
-
-out.loss[
-  set.name=="validation",
-  .SD[which.min(loss.value), .(step.size, iteration)],
-  by=loss.name]
-
+  geom_point(
+    data=max.valid.auc)+
+  facet_grid(
+    . ~ loss.name,
+    scales='free',
+    space='fixed')
 ```
