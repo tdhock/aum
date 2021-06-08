@@ -5,6 +5,14 @@ stl_sort <- function(x) {
     .Call(`_aum_stl_sort`, x)
 }
 
+do_qsort <- function(x) {
+    .Call(`_aum_do_qsort`, x)
+}
+
+logistic_grad <- function(pred, label) {
+    .Call(`_aum_logistic_grad`, pred, label)
+}
+
 stl_set_insert <- function(x) {
     .Call(`_aum_stl_set_insert`, x)
 }

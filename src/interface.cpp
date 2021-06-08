@@ -8,7 +8,25 @@ Rcpp::NumericVector stl_sort(Rcpp::NumericVector x) {
   std::sort(y.begin(), y.end());
   return y;
 }
- 
+
+int compare_double(const void *left, const void *right){
+  return * (double*)left > * (double*)right;
+}
+// [[Rcpp::export]]
+Rcpp::NumericVector do_qsort(Rcpp::NumericVector x) {
+  Rcpp::NumericVector y = clone(x);
+  qsort(&y[0], y.size(), sizeof(double), compare_double);
+  return y;
+}
+//x <- rnorm(10)
+//label <- rep(c(-1,1), l=length(x))
+// [[Rcpp::export]]
+Rcpp::NumericVector logistic_grad(Rcpp::NumericVector pred, Rcpp::NumericVector label) {
+  Rcpp::NumericVector grad = clone(pred);
+  grad = - label / ( 1 + exp(pred * label));
+  return grad;
+}
+
 // [[Rcpp::export]]
 Rcpp::NumericVector stl_set_insert(Rcpp::NumericVector x) {
   std::set<double> s;

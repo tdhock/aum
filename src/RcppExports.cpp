@@ -16,6 +16,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// do_qsort
+Rcpp::NumericVector do_qsort(Rcpp::NumericVector x);
+RcppExport SEXP _aum_do_qsort(SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(do_qsort(x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// logistic_grad
+Rcpp::NumericVector logistic_grad(Rcpp::NumericVector pred, Rcpp::NumericVector label);
+RcppExport SEXP _aum_logistic_grad(SEXP predSEXP, SEXP labelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type pred(predSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type label(labelSEXP);
+    rcpp_result_gen = Rcpp::wrap(logistic_grad(pred, label));
+    return rcpp_result_gen;
+END_RCPP
+}
 // stl_set_insert
 Rcpp::NumericVector stl_set_insert(Rcpp::NumericVector x);
 RcppExport SEXP _aum_stl_set_insert(SEXP xSEXP) {
@@ -54,6 +77,8 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_aum_stl_sort", (DL_FUNC) &_aum_stl_sort, 1},
+    {"_aum_do_qsort", (DL_FUNC) &_aum_do_qsort, 1},
+    {"_aum_logistic_grad", (DL_FUNC) &_aum_logistic_grad, 2},
     {"_aum_stl_set_insert", (DL_FUNC) &_aum_stl_set_insert, 1},
     {"_aum_aum_map_interface", (DL_FUNC) &_aum_aum_map_interface, 2},
     {"_aum_aum_sort_interface", (DL_FUNC) &_aum_aum_sort_interface, 2},
