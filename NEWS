@@ -1,5 +1,10 @@
 TODOs
 
+2021.9.23
+
+aum_sort.cpp: fix read out of bound when err_N=1, use std::sort
+instead of qsort.
+
 2021.3.9
 
 vignette comparing logistic regression and other loss functions to aum
