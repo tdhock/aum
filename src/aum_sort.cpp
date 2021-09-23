@@ -1,19 +1,12 @@
 #include "aum_sort.h"
 #include <math.h>//isfinite
-#include <stdlib.h>//qsort
-
-static double *sort_thresh;
-int compare_indices(const void *left, const void *right){
-  return sort_thresh[* (int*)left] > sort_thresh[* (int*)right];
-}
+#include <algorithm>//std::sort
 
 // Main function for computing Area Under Minimum of False Positives
 // and False Negatives. All pointer arguments must be arrays (of size
 // indicated in comments below) that are allocated before calling
 // aum. Since we do qsort on err_N elements the time complexity is
-// O( err_N log err_N ). A C compiler can be used with this code file
-// but the "cpp" suffix is for easy compilation with the other C++
-// code in the R package. This code is slightly faster (by constant
+// O( err_N log err_N ). This code is slightly faster (by constant
 // factors) than aum_map, but this code is also slightly more
 // complicated (caller must pre-allocate all temporary arrays, etc).
 int aum_sort
@@ -57,8 +50,11 @@ int aum_sort
     out_indices[err_i] = err_i;
   }
   // Sort indices by threshold.
-  sort_thresh = out_thresh;
-  qsort(out_indices, err_N, sizeof(int), compare_indices);
+  std::sort
+    (out_indices, out_indices+err_N,
+     [&out_thresh](int left, int right){
+       return out_thresh[left] < out_thresh[right];
+     });
   double cumsum, cumsum_prev;
   const double *fp_or_fn_diff;
   double *out_this, *out_prev;
@@ -87,12 +83,18 @@ int aum_sort
     for(int i=0; i<err_N; i++){
       int rank_i = first + sign*i;
       int err_i = out_indices[rank_i];
-      int err_before = out_indices[rank_i+sign];
       cumsum += sign * fp_or_fn_diff[err_i];
       if(cumsum < 0){
 	return err;
       }
-      if(i == err_N-1 || out_thresh[err_i] != out_thresh[err_before]){
+      bool write_out = true;
+      if(i == err_N-1){
+        write_out = true;
+      }else{
+        int err_before = out_indices[rank_i+sign];
+        write_out = out_thresh[err_i] != out_thresh[err_before];
+      }
+      if(write_out){
 	for(int j=i_prev; j <= i; j++){
 	  int rank_j = first + sign*j;
 	  int err_j = out_indices[rank_j];
