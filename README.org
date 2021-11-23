@@ -73,4 +73,5 @@ The result above is a named list with two elements.
 - [[https://github.com/tdhock/penaltyLearning/blob/master/R/ROChange.R][penaltyLearning::ROChange]] provides an alternative pure R
   implementation of AUM and its directional derivatives (as well as
   AUC computation).
+- [[https://github.com/tdhock/max-generalized-auc][max-generalized-auc]] repo provides code for making the figures in https://arxiv.org/abs/2107.01285
 
