@@ -5,63 +5,11 @@
 
 using namespace Rcpp;
 
-// stl_sort
-Rcpp::NumericVector stl_sort(Rcpp::NumericVector x);
-RcppExport SEXP _aum_stl_sort(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(stl_sort(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// do_qsort
-Rcpp::NumericVector do_qsort(Rcpp::NumericVector x);
-RcppExport SEXP _aum_do_qsort(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(do_qsort(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// logistic_grad
-Rcpp::NumericVector logistic_grad(Rcpp::NumericVector pred, Rcpp::NumericVector label);
-RcppExport SEXP _aum_logistic_grad(SEXP predSEXP, SEXP labelSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type pred(predSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type label(labelSEXP);
-    rcpp_result_gen = Rcpp::wrap(logistic_grad(pred, label));
-    return rcpp_result_gen;
-END_RCPP
-}
-// stl_set_insert
-Rcpp::NumericVector stl_set_insert(Rcpp::NumericVector x);
-RcppExport SEXP _aum_stl_set_insert(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type x(xSEXP);
-    rcpp_result_gen = Rcpp::wrap(stl_set_insert(x));
-    return rcpp_result_gen;
-END_RCPP
-}
-// aum_map_interface
-Rcpp::List aum_map_interface(const Rcpp::DataFrame err_df, const Rcpp::NumericVector pred_vec);
-RcppExport SEXP _aum_aum_map_interface(SEXP err_dfSEXP, SEXP pred_vecSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type err_df(err_dfSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector >::type pred_vec(pred_vecSEXP);
-    rcpp_result_gen = Rcpp::wrap(aum_map_interface(err_df, pred_vec));
-    return rcpp_result_gen;
-END_RCPP
-}
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // aum_sort_interface
 Rcpp::List aum_sort_interface(const Rcpp::DataFrame err_df, const Rcpp::NumericVector pred_vec);
 RcppExport SEXP _aum_aum_sort_interface(SEXP err_dfSEXP, SEXP pred_vecSEXP) {
@@ -76,11 +24,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_aum_stl_sort", (DL_FUNC) &_aum_stl_sort, 1},
-    {"_aum_do_qsort", (DL_FUNC) &_aum_do_qsort, 1},
-    {"_aum_logistic_grad", (DL_FUNC) &_aum_logistic_grad, 2},
-    {"_aum_stl_set_insert", (DL_FUNC) &_aum_stl_set_insert, 1},
-    {"_aum_aum_map_interface", (DL_FUNC) &_aum_aum_map_interface, 2},
     {"_aum_aum_sort_interface", (DL_FUNC) &_aum_aum_sort_interface, 2},
     {NULL, NULL, 0}
 };

@@ -5,10 +5,8 @@
 // Main function for computing Area Under Minimum of False Positives
 // and False Negatives. All pointer arguments must be arrays (of size
 // indicated in comments below) that are allocated before calling
-// aum. Since we do qsort on err_N elements the time complexity is
-// O( err_N log err_N ). This code is slightly faster (by constant
-// factors) than aum_map, but this code is also slightly more
-// complicated (caller must pre-allocate all temporary arrays, etc).
+// aum_sort. Since we do std::sort on err_N elements the time
+// complexity is O( err_N log err_N ).
 int aum_sort
 (const double *err_pred, //err_N
  const double *err_fp_diff, 

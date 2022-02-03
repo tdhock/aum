@@ -99,18 +99,12 @@ for(N.pred in N.pred.vec){
   print(N.pred)
   N.diffs.dt <- max.diffs.dt[1:N.pred]
   N.pred.vec <- max.pred.vec[1:N.pred]
-  timing.df <- microbenchmark::microbenchmark(stl_sort={
-    aum:::stl_sort(N.pred.vec)
-  }, stl_set_insert={
-    aum:::stl_set_insert(N.pred.vec)
-  }, dt_sort={
+  timing.df <- microbenchmark::microbenchmark(dt_sort={
     N.diffs.dt[order(N.pred.vec)]
   }, R_sort_radix={
     sort(N.pred.vec, method="radix")
   }, R_sort_quick={
     sort(N.pred.vec, method="quick")
-  }, aum_map={
-    aum.list <- aum:::aum_map_interface(N.diffs.dt, N.pred.vec)
   }, aum_sort={
     aum.list <- aum:::aum_sort_interface(N.diffs.dt, N.pred.vec)
   }, times=10)
