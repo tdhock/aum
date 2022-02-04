@@ -76,19 +76,67 @@ stats.wide <- data.table::dcast(
 stats.wide[, speedup := penaltyLearning/aum][]
 ```
 
-Actually the trend seems to indicate that the speedup decreases as
-N.pred increases, which suggests the asymptotic complexity is
-different --- linear for penaltyLearning (due to use of radix sort in
-data.table), log-linear for aum (due to use of C++ STL Map). Exercise
-for the reader: implement aum computation using radix sort, add its
-timings to this figure.
+## R implementation
 
+In this section we show a base R implementation of aum.
+
+```{r}
+diffs.df <- data.frame(
+  example=c(0,1,1,2,3),
+  pred=c(0,0,1,0,0),
+  fp_diff=c(1,1,1,0,0),
+  fn_diff=c(0,0,0,-1,-1))
+pred.log.lambda <- c(0,1,-1,0)
+microbenchmark::microbenchmark("C++"={
+  aum::aum(diffs.df, pred.log.lambda)
+}, R={
+  thresh.vec <- with(diffs.df, pred-pred.log.lambda[example+1])
+  s.vec <- order(thresh.vec)
+  sort.diffs <- data.frame(diffs.df, thresh.vec)[s.vec,]
+  for(fp.or.fn in c("fp","fn")){
+    ord.fun <- if(fp.or.fn=="fp")identity else rev
+    fwd.or.rev <- sort.diffs[ord.fun(1:nrow(sort.diffs)),]
+    fp.or.fn.diff <- fwd.or.rev[[paste0(fp.or.fn,"_diff")]]
+    last.in.run <- c(diff(fwd.or.rev$thresh.vec) != 0, TRUE)
+    after.or.before <-
+      ifelse(fp.or.fn=="fp",1,-1)*cumsum(fp.or.fn.diff)[last.in.run]
+    distribute <- function(values)with(fwd.or.rev, structure(
+      values,
+      names=thresh.vec[last.in.run]
+    )[paste(thresh.vec)])
+    out.df <- data.frame(
+      before=distribute(c(0, after.or.before[-length(after.or.before)])),
+      after=distribute(after.or.before))
+    sort.diffs[
+      paste0(fp.or.fn,"_",ord.fun(c("before","after")))
+    ] <- as.list(out.df[ord.fun(1:nrow(out.df)),])
+  }
+  AUM.vec <- with(sort.diffs, diff(thresh.vec)*pmin(fp_before,fn_before)[-1])
+  list(
+    aum=sum(AUM.vec),
+    deriv_mat=sapply(c("after","before"),function(b.or.a){
+      s <- if(b.or.a=="before")1 else -1
+      f <- function(p.or.n,suffix=b.or.a){
+        sort.diffs[[paste0("f",p.or.n,"_",suffix)]]
+      }
+      fp <- f("p")
+      fn <- f("n")
+      aggregate(
+        s*(pmin(fp+s*f("p","diff"),fn+s*f("n","diff"))-pmin(fp, fn)),
+        list(sort.diffs$example),
+        sum)$x
+    }))
+}, times=10)
+```
+
+It is clear that the C++ implementation is several orders of magnitude
+faster.
 
 ## Synthetic data
 
 ```{r}
 library(data.table)
-max.N <- if(interactive())1e6 else 1e5
+max.N <- 1e6
 (N.pred.vec <- as.integer(10^seq(1, log10(max.N), by=0.5)))
 max.y.vec <- rep(c(0,1), l=max.N)
 max.diffs.dt <- aum::aum_diffs_binary(max.y.vec)
@@ -135,26 +183,6 @@ gg <- ggplot()+
   scale_x_log10(limits=stats.dt[, c(min(N.pred), max(N.pred)*5)])+
   scale_y_log10()
 directlabels::direct.label(gg, "right.polygons")
-
-```
-
-From the plot above we can see that both packages have similar
-asymptotic time complexity. However aum is faster by
-orders of magnitude (speedups shown below).
-
-```{r}
-stats.wide <- data.table::dcast(
-  stats.dt, N.pred ~ package, value.var = "median")
-stats.tall <- data.table::melt(stats.wide, id.vars=c("N.pred", "aum_sort"))
-stats.tall[, speedup := aum_sort/value][]
-gg <- ggplot()+
-  geom_line(aes(
-    N.pred, speedup, color=variable),
-    data=stats.tall)+
-  scale_x_log10(limits=stats.dt[, c(min(N.pred), max(N.pred)*5)])+
-  scale_y_log10()
-directlabels::direct.label(gg, "right.polygons")
-data.table::dcast(stats.tall, N.pred ~ variable, value.var="speedup")
 
 ```
 

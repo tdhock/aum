@@ -113,7 +113,7 @@ sapply(result.list, "[[", "gradient")
 
 ## Optimization
 
-```{r}
+```{r fig.width=14, fig.height=7}
 out.loss.list <- list()
 data.name <- "Sonar"
 input.output.list <- data.list[[data.name]]
@@ -220,6 +220,7 @@ ggplot(,aes(
     data=max.valid.auc)+
   facet_grid(
     . ~ loss.name,
+    labeller="label_both",
     scales='free',
     space='fixed')
 ```
