@@ -12,8 +12,12 @@ names of \code{label.vec} to integers.}
   \item{denominator}{Type of diffs, either "count" or "rate".}
 }
 
-\value{data.frame of error diffs which can be used as input to the \code{\link{aum}}
-function.}
+\value{data table of class "aum_diffs" in which each rows represents a
+breakpoint in an error function. Columns are interpreted as
+follows: there is a change of "fp_diff","fn_diff" at predicted
+value "pred" for example/observation "example". This can be used
+for computing Area Under Minimum via \code{\link{aum}} function, and plotted via
+\code{\link{plot.aum_diffs}}.}
 
 \author{Toby Dylan Hocking}
 

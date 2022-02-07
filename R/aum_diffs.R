@@ -1,5 +1,6 @@
 aum_errors <- structure(function
-### Convert diffs to canonical errors.
+### Convert diffs to canonical errors, used internally in
+### plot.aum_diffs.
 (diffs.df
 ### data.table of diffs from aum_diffs.
 ){
@@ -22,7 +23,8 @@ aum_errors <- structure(function
 })
 
 ### Plot method for aum_diffs which shows piecewise constant error
-### functions.
+### functions. Uses aum_errors internally to compute error functions
+### which are plotted.
 plot.aum_diffs <- function(x, ...){
   min.pred <- value <- max.pred <- variable <- pred <- NULL
   ## Above to silence CRAN check NOTE.
@@ -43,7 +45,10 @@ plot.aum_diffs <- function(x, ...){
 
 aum_diffs <- structure(function
 ### Create error differences data table which can be used as input to
-### aum function.
+### aum function. Typical users should not use this function directly,
+### and instead use aum_diffs_binary for binary classification, and
+### aum_diffs_penalty for error defined as a function of non-negative
+### penalty.
 (example,
 ### Integer or character vector identifying different examples.
   pred,
@@ -73,8 +78,12 @@ aum_diffs <- structure(function
   out <- data.table(example, pred, fp_diff, fn_diff)[!is.na(example)]
   class(out) <- c("aum_diffs", class(out))
   out
-### data table with "aum_diffs" class and same columns as input
-### arguments.
+### data table of class "aum_diffs" in which each rows represents a
+### breakpoint in an error function. Columns are interpreted as
+### follows: there is a change of "fp_diff","fn_diff" at predicted
+### value "pred" for example/observation "example". This can be used
+### for computing Area Under Minimum via aum function, and plotted via
+### plot.aum_diffs.
 }, ex=function(){
 
   aum::aum_diffs_binary(c(0,1))
@@ -130,8 +139,12 @@ aum_diffs_binary <- structure(function
     ifelse(is.positive,  0, 1)/fp.denom,
     ifelse(is.positive, -1, 0)/fn.denom,
     pred.name.vec)
-### data.frame of error diffs which can be used as input to the aum
-### function.
+### data table of class "aum_diffs" in which each rows represents a
+### breakpoint in an error function. Columns are interpreted as
+### follows: there is a change of "fp_diff","fn_diff" at predicted
+### value "pred" for example/observation "example". This can be used
+### for computing Area Under Minimum via aum function, and plotted via
+### plot.aum_diffs.
 }, ex=function(){
 
   aum_diffs_binary(c(0,1))
@@ -213,8 +226,12 @@ aum_diffs_penalty <- structure(function
       fn_diff[keep]/fn.denom,
       pred.name.vec)
   })
-### data table of error diffs which can be used as input to the aum
-### function.
+### data table of class "aum_diffs" in which each rows represents a
+### breakpoint in an error function. Columns are interpreted as
+### follows: there is a change of "fp_diff","fn_diff" at predicted
+### value "pred" for example/observation "example". This can be used
+### for computing Area Under Minimum via aum function, and plotted via
+### plot.aum_diffs.
 }, ex=function(){
 
   ## Simple synthetic example with two changes in error function.

@@ -2,10 +2,11 @@ aum <- structure(function
 ### Compute the Area Under Minimum of False Positives and False
 ### Negatives, and its directional derivatives.
 (error.diff.df,
-### data.frame of error differences. There should be one row for each
-### change in error functions. "example" column indicates example ID
-### (int from 1 to N), "pred" column indicates predicted value where
-### there is a change in the error function(s), "fp_diff" and
+### data frame of error differences, typically computed via
+### aum_diffs_binary or aum_diffs_penalty. There should be one row for
+### each change in error functions. "example" column indicates example
+### ID (int from 1 to N), "pred" column indicates predicted value
+### where there is a change in the error function(s), "fp_diff" and
 ### "fn_diff" columns indicate differences in false positives and
 ### false negatives at that predicted value. Note that this
 ### representation assumes that each error function has fp=0 at

@@ -1,7 +1,8 @@
 \name{aum_errors}
 \alias{aum_errors}
 \title{aum errors}
-\description{Convert diffs to canonical errors.}
+\description{Convert diffs to canonical errors, used internally in
+\code{\link{plot.aum_diffs}}.}
 \usage{aum_errors(diffs.df)}
 \arguments{
   \item{diffs.df}{data.table of diffs from \code{\link{aum_diffs}}.}

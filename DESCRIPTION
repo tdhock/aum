@@ -1,12 +1,12 @@
 Package: aum
 Type: Package
 Title: Area Under Minimum of False Positives and Negatives
-Version: 2022.2.3
+Version: 2022.2.7
 Author: Toby Dylan Hocking
 Maintainer: Toby Dylan Hocking <toby.hocking@r-project.org>
 Description: Standard template library sort is
  used to implement an efficient  
- algorithm for computing Area Under Minimum and
+ algorithm <arXiv:2107.01285> for computing Area Under Minimum and
  directional derivatives.
 License: GPL-3
 LinkingTo: Rcpp

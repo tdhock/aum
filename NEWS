@@ -1,5 +1,9 @@
 TODOs
 
+2022.2.7
+
+Add arXiv link to DESCRIPTION, clarify outputs in aum_diffs.
+
 2022.2.3
 
 Remove un-necessary C++ code, just keep aum_sort and interface.
