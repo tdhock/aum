@@ -11,6 +11,8 @@ classification and changepoint detection problems.
 ** Installation
 
 #+begin_src R
+  install.packages("aum")
+  ## OR:
   if(!requireNamespace("remotes"))install.packages("remotes")
   remotes::install_github("tdhock/aum")
 #+end_src
@@ -73,7 +75,7 @@ The result above is a named list with two elements.
 - [[https://github.com/tdhock/penaltyLearning/blob/master/R/ROChange.R][penaltyLearning::ROChange]] provides an alternative implementation of
   AUM and its directional derivatives in R data.table code (as well as
   AUC computation).
-- [[https://github.com/tdhock/aum/blob/main/vignettes/speed-comparison.Rmd][The speed comparison vignette]] has an alternative implementation of
+- [[https://cloud.r-project.org/web/packages/aum/vignettes/speed-comparison.html][The speed comparison vignette]] has an alternative implementation of
   AUM and its directional derivatives in base R code.
 - [[https://github.com/tdhock/max-generalized-auc][max-generalized-auc]] repo provides code for making the figures in https://arxiv.org/abs/2107.01285
 
