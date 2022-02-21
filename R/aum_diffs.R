@@ -22,10 +22,16 @@ aum_errors <- structure(function
 
 })
 
+plot.aum_diffs <- function
 ### Plot method for aum_diffs which shows piecewise constant error
 ### functions. Uses aum_errors internally to compute error functions
-### which are plotted.
-plot.aum_diffs <- function(x, ...){
+### which are plotted. Not recommended for large number of examples
+### (>20).
+(x,
+### data table with class "aum_diffs".
+  ...
+### ignored.
+){
   min.pred <- value <- max.pred <- variable <- pred <- NULL
   ## Above to silence CRAN check NOTE.
   err.wide <- aum_errors(x)
@@ -41,6 +47,7 @@ plot.aum_diffs <- function(x, ...){
       data=x)+
     ggplot2::scale_size_manual(values=c(fp=2, fn=1))+
     ggplot2::facet_grid(example ~ ., labeller=ggplot2::label_both)
+### ggplot of error functions, each example in a different panel.
 }
 
 aum_diffs <- structure(function
