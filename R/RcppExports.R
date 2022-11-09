@@ -5,3 +5,7 @@ aum_sort_interface <- function(err_df, pred_vec) {
     .Call(`_aum_aum_sort_interface`, err_df, pred_vec)
 }
 
+aumLineSearch <- function(df, initialAum, maxIterations) {
+    .Call(`_aum_aumLineSearch`, df, initialAum, maxIterations)
+}
+
