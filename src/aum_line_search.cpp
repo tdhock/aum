@@ -31,9 +31,9 @@ bool operator==(IntersectionData a, IntersectionData b) {
 }
 
 void queueIntersection(
+        double currentStepSize,
         const Line *lines,
         multiset<IntersectionData> &intersections,
-        unordered_set<Point> &checkedIntersections,
         int lowLine,
         int highLine
 ) {
@@ -43,13 +43,10 @@ void queueIntersection(
     );
 
     // intersection points with infinite values aren't real intersections
-    if (intersectionPoint.isFinite() && intersectionPoint.x >= 0) {
+    if (intersectionPoint.isFinite() && intersectionPoint.x >= currentStepSize) {
         auto intersection = IntersectionData{
                 intersectionPoint, lowLine, highLine
         };
-        if (checkedIntersections.find(intersectionPoint) != checkedIntersections.end()) {
-            return;
-        }
 
         intersections.insert(intersection);
     }
@@ -80,7 +77,6 @@ void lineSearch(
         backwardsIndices.push_back(i);
     }
 
-    unordered_set<Point> checkedIntersections;
     multiset<IntersectionData> intersections;
     // start by queueing intersections of every line and the line after it
     for (int a = 0; a < lineCount - 1; a++) {
@@ -100,7 +96,6 @@ void lineSearch(
                 lineIndexHighBeforeIntersect = a;
             }
             intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
-            checkedIntersections.insert(point);
         }
     }
 
@@ -153,26 +148,23 @@ void lineSearch(
         double minBeforeIntersection = M[b];
         M[b] = min(FP[b], FN[b]);
 
-        checkedIntersections.insert(intersection.point);
         // queue the next intersections in the multiset
         // this creates an intersection between "lineIndexHighAfterIntersect" and "higherLineIndex"
         // "lineIndexHighAfterIntersect" will now be the index of the low line before this new intersection point
         if (higherLineIndex < lineCount) {
-            queueIntersection(lines, intersections, checkedIntersections,
+            queueIntersection(stepSize, lines, intersections,
                               intersection.lineLowBeforeIntersect, sortedIndices[higherLineIndex]);
         }
         if (lowerLineIndex >= 0) {
-            queueIntersection(lines, intersections, checkedIntersections,
+            queueIntersection(stepSize, lines, intersections,
                               sortedIndices[lowerLineIndex], intersection.lineHighBeforeIntersect);
         }
 
         double aumDiff = aumSlope * (stepSize - lastStepSize);
         aum += aumDiff;
 
-        if (isfinite(aum)) {
-            stepSizeVec[iterations] = stepSize;
-            aumVec[iterations] = aum;
-        }
+        stepSizeVec[iterations] = stepSize;
+        aumVec[iterations] = aum;
 
         // update aum slope
         double slopeDiff = lines[intersection.lineHighBeforeIntersect].slope - lines[intersection.lineLowBeforeIntersect].slope;

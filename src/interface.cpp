@@ -74,7 +74,7 @@ Rcpp::List aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int 
     std::vector<Line> lines;
     lines.reserve(lineCount);
     for (int i = 0; i < lineCount; i++) {
-        Line line = Line { .intercept = intercept[i], .slope = slope[i] };
+        Line line = Line { slope[i], intercept[i] };
         lines.push_back(line);
     }
 
