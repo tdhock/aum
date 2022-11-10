@@ -86,23 +86,24 @@ void lineSearch(
     multiset<IntersectionData> intersections;
     // start by queueing intersections of every line and the line after it
     for (int a = 0; a < lineCount - 1; a++) {
-        Point point = intersect(lines[a], lines[a + 1]);
-        // parallel lines will be infinite
-        if (point.isFinite() && point.x >= 0) {
-            int lineIndexLowBeforeIntersect;
-            int lineIndexHighBeforeIntersect;
-            if (lines[a].intercept < lines[a + 1].intercept) {
-                // (a) is below (a + 1) before the intersection point
-                lineIndexLowBeforeIntersect = a;
-                lineIndexHighBeforeIntersect = a + 1;
-            } else {
-                // (a + 1) is below (a) before the intersection point
-                lineIndexLowBeforeIntersect = a + 1;
-                lineIndexHighBeforeIntersect = a;
+        for (int b = a + 1; b < lineCount - 1; b++) {
+            Point point = intersect(lines[a], lines[b]);
+            // parallel lines will be infinite
+            if (point.isFinite() && point.x >= 0) {
+                int lineIndexLowBeforeIntersect;
+                int lineIndexHighBeforeIntersect;
+                if (lines[a].intercept < lines[b].intercept) {
+                    // (a) is below (a + 1) before the intersection point
+                    lineIndexLowBeforeIntersect = a;
+                    lineIndexHighBeforeIntersect = b;
+                } else {
+                    // (a + 1) is below (a) before the intersection point
+                    lineIndexLowBeforeIntersect = b;
+                    lineIndexHighBeforeIntersect = a;
+                }
+                intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
+                checkedIntersections.insert(point);
             }
-            cout << "starting with intersection point: high line=" << lineIndexHighBeforeIntersect << " low line=" << lineIndexLowBeforeIntersect << " x=" << point.x << " y=" << point.y << endl;
-            intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
-            checkedIntersections.insert(point);
         }
     }
 
@@ -180,7 +181,7 @@ void lineSearch(
         double slopeDiff = lines[intersection.lineHighBeforeIntersect].slope - lines[intersection.lineLowBeforeIntersect].slope;
         // this is the D^(k+1) update rule in the paper,
         // it updates the AUM slope for the next iteration
-        double mAfter = b < lineCount ? M[b + 1] : 0;
+        double mAfter = b + 1 < lineCount ? M[b + 1] : 0;
         aumSlope += (slopeDiff) * (mAfter + M[b - 1] - M[b] - minBeforeIntersection);
 
         intersections.erase(intersection);
