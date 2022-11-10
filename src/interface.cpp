@@ -69,10 +69,9 @@ Rcpp::List aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int 
     Rcpp::NumericVector intercept = df["intercept"];
     Rcpp::NumericVector slope = df["slope"];
     int lineCount = df.nrow();
-    cout << "Running line intersection with " << lineCount << " lines." << endl;
 
     // build lines
-    vector<Line> lines;
+    std::vector<Line> lines;
     lines.reserve(lineCount);
     for (int i = 0; i < lineCount; i++) {
         Line line = Line { .intercept = intercept[i], .slope = slope[i] };
@@ -97,5 +96,5 @@ Rcpp::List aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int 
             &aumVec[0]
     );
 
-    return List::create(Rcpp::Named("aum", aumVec), Rcpp::Named("step.size", stepSizeVec));
+    return Rcpp::List::create(Rcpp::Named("aum", aumVec), Rcpp::Named("step.size", stepSizeVec));
 }

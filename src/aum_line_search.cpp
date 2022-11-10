@@ -3,9 +3,7 @@
 using namespace std;
 
 bool Point::operator==(const Point other) const {
-    // return x == other.x && y == other.y;
-    // TODO double check this is correct
-    return fabs(x - other.x) < 1e-5 && fabs(y - other.y) < 1e-5;
+    return fabs(x - other.x) < 1e-6 && fabs(y - other.y) < 1e-6;
 }
 
 bool Point::isFinite() const {
@@ -86,24 +84,23 @@ void lineSearch(
     multiset<IntersectionData> intersections;
     // start by queueing intersections of every line and the line after it
     for (int a = 0; a < lineCount - 1; a++) {
-        for (int b = a + 1; b < lineCount - 1; b++) {
-            Point point = intersect(lines[a], lines[b]);
-            // parallel lines will be infinite
-            if (point.isFinite() && point.x >= 0) {
-                int lineIndexLowBeforeIntersect;
-                int lineIndexHighBeforeIntersect;
-                if (lines[a].intercept < lines[b].intercept) {
-                    // (a) is below (a + 1) before the intersection point
-                    lineIndexLowBeforeIntersect = a;
-                    lineIndexHighBeforeIntersect = b;
-                } else {
-                    // (a + 1) is below (a) before the intersection point
-                    lineIndexLowBeforeIntersect = b;
-                    lineIndexHighBeforeIntersect = a;
-                }
-                intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
-                checkedIntersections.insert(point);
+        int b = a + 1;
+        Point point = intersect(lines[a], lines[b]);
+        // parallel lines will be infinite
+        if (point.isFinite() && point.x >= 0) {
+            int lineIndexLowBeforeIntersect;
+            int lineIndexHighBeforeIntersect;
+            if (lines[a].intercept < lines[b].intercept) {
+                // a is below b before the intersection point
+                lineIndexLowBeforeIntersect = a;
+                lineIndexHighBeforeIntersect = b;
+            } else {
+                // b is below a before the intersection point
+                lineIndexLowBeforeIntersect = b;
+                lineIndexHighBeforeIntersect = a;
             }
+            intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
+            checkedIntersections.insert(point);
         }
     }
 
