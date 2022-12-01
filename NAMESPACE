@@ -3,3 +3,4 @@ export(aum, aum_line_search, aum_diffs_binary, aum_diffs_penalty, aum_diffs, aum
 importFrom(Rcpp, evalCpp)
 import(data.table)
 S3method("plot", "aum_diffs")
+S3method("plot", "aum_line_search")

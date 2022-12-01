@@ -22,7 +22,7 @@ derivative_mat is N x 2 matrix of directional derivatives (first
 column is derivative from left, second column is derivative from
 right). If}
 
-\author{Toby Dylan Hocking}
+\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 

@@ -1,5 +1,9 @@
 TODOs
 
+2022.12.1
+
+aum_line_search function with plot method.
+
 2022.2.7
 
 Add arXiv link to DESCRIPTION, clarify outputs in aum_diffs.
