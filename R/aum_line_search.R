@@ -49,29 +49,31 @@ plot.aum_line_search <- function
   ...
 ### ignored.
 ){
+  step.size <- aum <- slope <- intercept <- NULL
+  ## Above to suppress CRAN check NOTE.
   aum.df <- data.frame(panel="aum", x$line_search_result)
   abline.df <- data.frame(panel="threshold", x$line_search_input)
-  ggplot()+
-    theme_bw()+
-    theme(panel.spacing=grid::unit(0,"lines"))+
-    geom_vline(aes(
+  ggplot2::ggplot()+
+    ggplot2::theme_bw()+
+    ggplot2::theme(panel.spacing=grid::unit(0,"lines"))+
+    ggplot2::geom_vline(ggplot2::aes(
       xintercept=step.size),
       color="grey",
       data=x$line_search_result)+
-    geom_point(aes(
+    ggplot2::geom_point(ggplot2::aes(
       step.size, aum),
       data=aum.df)+
-    geom_line(aes(
+    ggplot2::geom_line(ggplot2::aes(
       step.size, aum),
       size=1,
       data=aum.df)+
-    facet_grid(panel ~ ., scales="free")+
-    geom_abline(aes(
+    ggplot2::facet_grid(panel ~ ., scales="free")+
+    ggplot2::geom_abline(ggplot2::aes(
       slope=slope, intercept=intercept),
       size=1,
       data=abline.df)+
-    geom_point(aes(
+    ggplot2::geom_point(ggplot2::aes(
       0, intercept),
       data=abline.df)+
-    scale_y_continuous("")
+    ggplot2::scale_y_continuous("")
 }
