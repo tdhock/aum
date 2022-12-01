@@ -23,7 +23,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // aumLineSearch
-Rcpp::List aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int maxIterations);
+Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int maxIterations);
 RcppExport SEXP _aum_aumLineSearch(SEXP dfSEXP, SEXP initialAumSEXP, SEXP maxIterationsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

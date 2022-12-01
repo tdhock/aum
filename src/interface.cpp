@@ -62,7 +62,7 @@ Rcpp::List aum_sort_interface
 }
 
 // [[Rcpp::export]]
-Rcpp::List aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int maxIterations) {
+Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int maxIterations) {
     // extract columnds from dataframe
     Rcpp::NumericVector fpDiff = df["fp.diff"];
     Rcpp::NumericVector fnDiff = df["fn.diff"];
@@ -96,5 +96,5 @@ Rcpp::List aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int 
             &aumVec[0]
     );
 
-    return Rcpp::List::create(Rcpp::Named("aum", aumVec), Rcpp::Named("step.size", stepSizeVec));
+    return Rcpp::DataFrame::create(Rcpp::Named("aum", aumVec), Rcpp::Named("step.size", stepSizeVec));
 }
