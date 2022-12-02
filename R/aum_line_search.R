@@ -77,9 +77,20 @@ plot.aum_line_search <- function
       0, intercept),
       data=abline.df)+
     ggplot2::scale_y_continuous("")
+### ggplot.
 }
 
-aum_line_search_grid <- structure(function(error.diff.df, pred.vec, maxIterations=nrow(error.diff.df), n.grid=10L){
+aum_line_search_grid <- structure(function
+### Line search for predicted values, with grid search to check.
+(error.diff.df,
+### aum_diffs data frame.
+  pred.vec,
+### Numeric vector of predicted values.
+  maxIterations=nrow(error.diff.df)
+### positive int: max number of line search iterations.
+  n.grid=10L
+### positive int: number of grid points for checking.
+){
   L <- aum_line_search(error.diff.df, pred.vec, maxIterations)
   step.size <- seq(0, max(L$line_search_result$step.size), l=n.grid)
   step.mat <- matrix(step.size, length(pred.vec), length(step.size), byrow=TRUE)
@@ -89,6 +100,7 @@ aum_line_search_grid <- structure(function(error.diff.df, pred.vec, maxIteration
     aum=apply(pred.mat, 2, function(pred)aum::aum(error.diff.df, pred)$aum))
   class(L) <- c("aum_line_search_grid", class(L))
   L
+### List of class aum_line_search_grid.
 }, ex=function(){
 
   ## Example 1: two binary data.
@@ -106,12 +118,19 @@ aum_line_search_grid <- structure(function(error.diff.df, pred.vec, maxIteration
     fp, fn))
   (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("4.2", "1.1")))
   if(requireNamespace("ggplot2"))plot(nb.diffs)
-  (nb.line.search <- aum::aum_line_search_grid(nb.diffs, c(1,-1)))
+  (nb.line.search <- aum::aum_line_search_grid(nb.diffs, c(-1,1)))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
   
 })
   
-plot.aum_line_search_grid <- function(x, ...){
+plot.aum_line_search_grid <- function
+### Plot method for aum_line_search_grid which shows AUM and threshold
+### functions, along with grid points for checking.
+(x,
+### list with class "aum_line_search_grid".
+  ...
+### ignored.
+){
   step.size <- aum <- slope <- intercept <- search <- NULL
   ## Above to suppress CRAN check NOTE.
   aum.df <- data.frame(
@@ -147,4 +166,5 @@ plot.aum_line_search_grid <- function(x, ...){
         step.size, aum, color=search),
       shape=1,
       data=grid.df)
+### ggplot.
 }
