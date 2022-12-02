@@ -71,7 +71,6 @@ plot.aum_line_search <- function
     ggplot2::facet_grid(panel ~ ., scales="free")+
     ggplot2::geom_abline(ggplot2::aes(
       slope=slope, intercept=intercept),
-      size=1,
       data=abline.df)+
     ggplot2::geom_point(ggplot2::aes(
       0, intercept),
@@ -137,7 +136,6 @@ plot.aum_line_search_grid <- function(x, ...){
     ggplot2::facet_grid(panel ~ ., scales="free")+
     ggplot2::geom_abline(ggplot2::aes(
       slope=slope, intercept=intercept, color=search),
-      size=1,
       data=abline.df)+
     ggplot2::geom_point(ggplot2::aes(
       0, intercept, color=search),
