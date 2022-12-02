@@ -10,11 +10,12 @@ aum_line_search <- structure(function
   L <- aum(error.diff.df, pred.vec)
   L$gradient <- rowMeans(L$derivative_mat)
   pred.i <- error.diff.df$example+1L
-  L$line_search_input <- data.frame(
+  unsorted <- data.frame(
     fp.diff=error.diff.df$fp_diff,
     fn.diff=error.diff.df$fn_diff,
     intercept=error.diff.df$pred-pred.vec[pred.i],
     slope=L$gradient[pred.i])
+  L$line_search_input <- unsorted[order(unsorted$intercept),]
   line.search.all <- aumLineSearch(L$line_search_input, L$aum, maxIterations)
   keep <- 0 <= line.search.all$step.size 
   L$line_search_result <- line.search.all[keep,]
@@ -91,9 +92,9 @@ aum_line_search_grid <- structure(function(error.diff.df, pred.vec, maxIteration
 }, ex=function(){
 
   ## Example 1: two binary data.
-  (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
+  (bin.diffs <- aum::aum_diffs_binary(c(1,0)))
   if(requireNamespace("ggplot2"))plot(bin.diffs)
-  (bin.line.search <- aum::aum_line_search_grid(bin.diffs, c(10,-10)))
+  (bin.line.search <- aum::aum_line_search_grid(bin.diffs, c(-10,10)))
   if(requireNamespace("ggplot2"))plot(bin.line.search)
 
   ## Example 2: two changepoint examples, one with three breakpoints.
@@ -103,7 +104,7 @@ aum_line_search_grid <- structure(function(error.diff.df, pred.vec, maxIteration
     min.lambda,
     max.lambda,
     fp, fn))
-  (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("1.1", "4.2")))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("4.2", "1.1")))
   if(requireNamespace("ggplot2"))plot(nb.diffs)
   (nb.line.search <- aum::aum_line_search_grid(nb.diffs, c(1,-1)))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
