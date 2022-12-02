@@ -1,14 +1,31 @@
 aum_line_search <- structure(function
-### Line search for predicted values.
+### Exact line search.
 (error.diff.df,
-### aum_diffs data frame.
-  pred.vec,
-### Numeric vector of predicted values.
+### aum_diffs data frame with B rows, one for each breakpoint in
+### example-specific error functions.
+  feature.mat,
+### N x p matrix of numeric features.
+  weight.vec,
+### p-vector of numeric linear model coefficients.
+  pred.vec=NULL,
+### N-vector of numeric predicted values. If NULL, feature.mat and
+### weight.vec will be used to compute predicted values.
   maxIterations=nrow(error.diff.df)
 ### positive int: max number of line search iterations.
 ){
+  pred.null <- is.null(pred.vec)
+  if(pred.null){
+    pred.vec <- feature.mat %*% weight.vec
+  }
   L <- aum(error.diff.df, pred.vec)
-  L$gradient <- rowMeans(L$derivative_mat)
+  L$pred.vec <- pred.vec
+  L$gradient_pred <- rowMeans(L$derivative_mat)
+  L$gradient <- if(pred.null){
+    L$gradient_weight <- t(feature.mat) %*% L$gradient_pred / nrow(feature.mat)
+    feature.mat %*% L$gradient_weight
+  }else{
+    L$gradient_pred
+  }
   pred.i <- error.diff.df$example+1L
   unsorted <- data.frame(
     fp.diff=error.diff.df$fp_diff,
@@ -27,7 +44,7 @@ aum_line_search <- structure(function
   ## Example 1: two binary data.
   (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
   if(requireNamespace("ggplot2"))plot(bin.diffs)
-  (bin.line.search <- aum::aum_line_search(bin.diffs, c(10,-10)))
+  (bin.line.search <- aum::aum_line_search(bin.diffs, pred.vec=c(10,-10)))
   if(requireNamespace("ggplot2"))plot(bin.line.search)
 
   ## Example 2: two changepoint examples, one with three breakpoints.
@@ -39,8 +56,21 @@ aum_line_search <- structure(function
     fp, fn))
   (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("1.1", "4.2")))
   if(requireNamespace("ggplot2"))plot(nb.diffs)
-  (nb.line.search <- aum::aum_line_search(nb.diffs, c(1,-1)))
+  (nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=c(1,-1)))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
+
+  ## Example 3: all changepoint examples, with linear model.
+  X.sc <- scale(neuroblastomaProcessed$feature.mat)
+  keep <- apply(is.finite(X.sc), 2, all)
+  X.keep <- X.sc[1:50,keep]
+  weight.vec <- rep(0, ncol(X.keep))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
+  nb.weight.search <- aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec)
+  str(nb.weight.search)
+  if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
 })
 
@@ -83,18 +113,24 @@ plot.aum_line_search <- function
 aum_line_search_grid <- structure(function
 ### Line search for predicted values, with grid search to check.
 (error.diff.df,
-### aum_diffs data frame.
-  pred.vec,
-### Numeric vector of predicted values.
-  maxIterations=nrow(error.diff.df)
+### aum_diffs data frame with B rows, one for each breakpoint in
+### example-specific error functions.
+  feature.mat,
+### N x p matrix of numeric features.
+  weight.vec,
+### p-vector of numeric linear model coefficients.
+  pred.vec=NULL,
+### N-vector of numeric predicted values. If missing, feature.mat and
+### weight.vec will be used to compute predicted values.
+  maxIterations=nrow(error.diff.df),
 ### positive int: max number of line search iterations.
   n.grid=10L
 ### positive int: number of grid points for checking.
 ){
-  L <- aum_line_search(error.diff.df, pred.vec, maxIterations)
+  L <- aum_line_search(error.diff.df, feature.mat, weight.vec, pred.vec, maxIterations)
   step.size <- seq(0, max(L$line_search_result$step.size), l=n.grid)
-  step.mat <- matrix(step.size, length(pred.vec), length(step.size), byrow=TRUE)
-  pred.mat <- pred.vec-step.mat*L$gradient
+  step.mat <- matrix(step.size, length(L$pred.vec), length(step.size), byrow=TRUE)
+  pred.mat <- as.numeric(L$pred.vec)-step.mat*as.numeric(L$gradient)
   L$grid_aum <- data.table(
     step.size,
     aum=apply(pred.mat, 2, function(pred)aum::aum(error.diff.df, pred)$aum))
@@ -106,7 +142,7 @@ aum_line_search_grid <- structure(function
   ## Example 1: two binary data.
   (bin.diffs <- aum::aum_diffs_binary(c(1,0)))
   if(requireNamespace("ggplot2"))plot(bin.diffs)
-  (bin.line.search <- aum::aum_line_search_grid(bin.diffs, c(-10,10)))
+  (bin.line.search <- aum::aum_line_search_grid(bin.diffs, pred.vec=c(-10,10)))
   if(requireNamespace("ggplot2"))plot(bin.line.search)
 
   ## Example 2: two changepoint examples, one with three breakpoints.
@@ -118,8 +154,21 @@ aum_line_search_grid <- structure(function
     fp, fn))
   (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("4.2", "1.1")))
   if(requireNamespace("ggplot2"))plot(nb.diffs)
-  (nb.line.search <- aum::aum_line_search_grid(nb.diffs, c(-1,1)))
+  (nb.line.search <- aum::aum_line_search_grid(nb.diffs, pred.vec=c(-1,1)))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
+
+  ## Example 3: all changepoint examples, with linear model.
+  X.sc <- scale(neuroblastomaProcessed$feature.mat)
+  keep <- apply(is.finite(X.sc), 2, all)
+  X.keep <- X.sc[1:50,keep]
+  weight.vec <- rep(0, ncol(X.keep))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
+  nb.weight.search <- aum::aum_line_search_grid(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec)
+  str(nb.weight.search)
+  if(requireNamespace("ggplot2"))plot(nb.weight.search)
   
 })
   

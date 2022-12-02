@@ -9,7 +9,7 @@
   \item{\dots}{ignored.}
 }
 
-
+\value{ggplot.}
 
 \author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
