@@ -128,7 +128,9 @@ aum_line_search_grid <- structure(function
 ### positive int: number of grid points for checking.
 ){
   L <- aum_line_search(error.diff.df, feature.mat, weight.vec, pred.vec, maxIterations)
-  step.size <- seq(0, max(L$line_search_result$step.size), l=n.grid)
+  step.size <- unique(sort(c(
+    L$line_search_result$step.size,
+    seq(0, max(L$line_search_result$step.size), l=n.grid))))
   step.mat <- matrix(step.size, length(L$pred.vec), length(step.size), byrow=TRUE)
   pred.mat <- as.numeric(L$pred.vec)-step.mat*as.numeric(L$gradient)
   L$grid_aum <- data.table(
@@ -157,10 +159,10 @@ aum_line_search_grid <- structure(function
   (nb.line.search <- aum::aum_line_search_grid(nb.diffs, pred.vec=c(-1,1)))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
 
-  ## Example 3: all changepoint examples, with linear model.
-  X.sc <- scale(neuroblastomaProcessed$feature.mat)
+  ## Example 3: 50 changepoint examples, with linear model.
+  X.sc <- scale(neuroblastomaProcessed$feature.mat[1:50,])
   keep <- apply(is.finite(X.sc), 2, all)
-  X.keep <- X.sc[1:50,keep]
+  X.keep <- X.sc[,keep]
   weight.vec <- rep(0, ncol(X.keep))
   (nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
   nb.weight.search <- aum::aum_line_search_grid(
@@ -170,6 +172,19 @@ aum_line_search_grid <- structure(function
   str(nb.weight.search)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
   
+  ## Example 4: many changepoint examples, optimize predictions.
+  all.ids <- rownames(neuroblastomaProcessed$feature.mat[1:800,])
+  all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
+  current.pred <- rep(0, length(all.ids))
+  nb.all.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, n.grid=100)
+  if(requireNamespace("ggplot2"))plot(nb.all.search)
+  compare.dt <- with(nb.all.search, grid_aum[
+    data.table(line_search_result)[, iteration := .I],
+    .(iteration, step.size, grid.aum=x.aum, exact.aum=i.aum, diff=x.aum-i.aum),
+    on="step.size"])
+  compare.dt[diff>1e-6]#should be empty.
+  compare.dt[190:200]
+
 })
   
 plot.aum_line_search_grid <- function
