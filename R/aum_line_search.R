@@ -179,34 +179,8 @@ aum_line_search_grid <- structure(function
   all.ids <- rownames(neuroblastomaProcessed$feature.mat[1:800,])
   all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
   current.pred <- rep(0, length(all.ids))
-  nb.all.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, n.grid=100)
-  all.slope.int <- data.table(nb.all.search$line_search_input)[, .(slope, intercept)]
-  uniq.slope.int <- unique(all.slope.int)
-  rbind(all=nrow(all.slope.int), uniq=nrow(uniq.slope.int))
+  nb.all.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, n.grid=100, maxIterations=1e4)
   if(requireNamespace("ggplot2"))plot(nb.all.search)
-  compare.dt <- with(nb.all.search, grid_aum[
-    data.table(line_search_result)[, iteration := .I],
-    .(iteration, step.size, grid.aum=x.aum, exact.aum=i.aum, diff.aum=x.aum-i.aum),
-    on="step.size"])
-  compare.dt[diff.aum>1e-6]#should be empty.
-  compare.dt[190:200]
-
-  slope.list <- with(nb.all.search, split(line_search_input, line_search_input$slope))
-  slope.vals <- as.numeric(names(slope.list))
-  int.dt <- CJ(i=slope.vals, j=slope.vals)[i<j, {
-    f <- function(x)slope.list[[paste(x)]]$intercept
-    i.int <- f(i)
-    j.int <- f(j)
-    CJ(I=seq_along(i.int), J=seq_along(j.int))[, .(
-      i.int=i.int[I],
-      j.int=j.int[J])]
-  }, by=.(i,j)][, step := (i.int-j.int)/(j-i)]
-  pos.dt <- int.dt[step>=0][order(step)][, iteration := seq(2, .N+1)][]
-  not.zero <- compare.dt[-1]
-  both.dt <- data.table(pos.dt[1:nrow(not.zero)], not.zero)
-  both.dt[, diff.step := step.size-step]
-  both.dt[diff.step>0]
-  plot(log10(both.dt$diff.step))
   
 })
   
