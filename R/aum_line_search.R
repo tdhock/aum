@@ -127,12 +127,14 @@ aum_line_search_grid <- structure(function
 ### weight.vec will be used to compute predicted values.
   maxIterations=nrow(error.diff.df),
 ### positive int: max number of line search iterations.
-  n.grid=10L
+  n.grid=10L,
 ### positive int: number of grid points for checking.
+  add.breakpoints=FALSE
+### add breakpoints from exact search to grid search.
 ){
   L <- aum_line_search(error.diff.df, feature.mat, weight.vec, pred.vec, maxIterations)
   step.size <- unique(sort(c(
-    L$line_search_result$step.size,
+    if(add.breakpoints)L$line_search_result$step.size,
     seq(0, max(L$line_search_result$step.size), l=n.grid))))
   step.mat <- matrix(step.size, length(L$pred.vec), length(step.size), byrow=TRUE)
   pred.mat <- as.numeric(L$pred.vec)-step.mat*as.numeric(L$gradient)
@@ -175,12 +177,40 @@ aum_line_search_grid <- structure(function
   str(nb.weight.search)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
   
-  ## Example 4: many changepoint examples, optimize predictions.
-  all.ids <- rownames(neuroblastomaProcessed$feature.mat[1:800,])
+  ## Example 4: all changepoint examples, with affine model.
+  X.sc <- scale(neuroblastomaProcessed$feature.mat[,c("log2.n","log.hall")])
+  keep <- apply(is.finite(X.sc), 2, all)
+  X.keep <- cbind(1, X.sc[,keep])
+  weight.vec <- rep(0, ncol(X.keep))
+  nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep))
+  improvement <- old.aum <- Inf
+  iteration <- 0
+  while(improvement > 0){
+    iteration <- iteration+1 
+    nb.weight.search <- aum::aum_line_search_grid(
+      nb.diffs,
+      feature.mat=X.keep,
+      weight.vec=weight.vec)
+    exact.dt <- data.table(nb.weight.search$line_search_result)
+    exact.dt[, kink := .I/.N]
+    best.row <- exact.dt[which.min(aum)]
+    cat(sprintf(
+      "iteration=%4d aum=%.6f step=%.6f kink=%f\n",
+      iteration, best.row$aum, best.row$step.size, best.row$kink))
+    improvement <- old.aum-best.row$aum
+    old.aum <- best.row$aum
+    weight.vec <- weight.vec-best.row$step.size*nb.weight.search$gradient_weight
+  }
+  
+  ## Example 5: many changepoint examples, optimize predictions.
+  all.ids <- rownames(neuroblastomaProcessed$feature.mat)
   all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
   current.pred <- rep(0, length(all.ids))
-  nb.all.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, n.grid=100, maxIterations=1e4)
-  if(requireNamespace("ggplot2"))plot(nb.all.search)
+  nb.all.search <- aum::aum_line_search_grid(
+    all.diffs, pred.vec=current.pred, maxIterations=2e5)
+  all.result <- data.table(nb.all.search$line_search_result)
+  some.result <- all.result[as.integer(seq(1, .N, l=100))]
+  plot(log10(aum) ~ step.size, some.result)
   
 })
   
