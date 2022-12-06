@@ -6,7 +6,7 @@
     feature.mat, weight.vec, 
     pred.vec = NULL, 
     maxIterations = nrow(error.diff.df), 
-    n.grid = 10L)}
+    n.grid = 10L, add.breakpoints = FALSE)}
 \arguments{
   \item{error.diff.df}{\code{\link{aum_diffs}} data frame with B rows, one for each breakpoint in
 example-specific error functions.}
@@ -16,6 +16,7 @@ example-specific error functions.}
 \code{weight.vec} will be used to compute predicted values.}
   \item{maxIterations}{positive int: max number of line search iterations.}
   \item{n.grid}{positive int: number of grid points for checking.}
+  \item{add.breakpoints}{add breakpoints from exact search to grid search.}
 }
 
 \value{List of class aum_line_search_grid.}
@@ -30,7 +31,7 @@ example-specific error functions.}
 ## Example 1: two binary data.
 (bin.diffs <- aum::aum_diffs_binary(c(1,0)))
 if(requireNamespace("ggplot2"))plot(bin.diffs)
-(bin.line.search <- aum::aum_line_search_grid(bin.diffs, pred.vec=c(-10,10)))
+bin.line.search <- aum::aum_line_search_grid(bin.diffs, pred.vec=c(-10,10))
 if(requireNamespace("ggplot2"))plot(bin.line.search)
 
 ## Example 2: two changepoint examples, one with three breakpoints.
@@ -45,17 +46,16 @@ if(requireNamespace("ggplot2"))plot(nb.diffs)
 (nb.line.search <- aum::aum_line_search_grid(nb.diffs, pred.vec=c(-1,1)))
 if(requireNamespace("ggplot2"))plot(nb.line.search)
 
-## Example 3: all changepoint examples, with linear model.
-X.sc <- scale(neuroblastomaProcessed$feature.mat)
+## Example 3: 50 changepoint examples, with linear model.
+X.sc <- scale(neuroblastomaProcessed$feature.mat[1:50,])
 keep <- apply(is.finite(X.sc), 2, all)
-X.keep <- X.sc[1:50,keep]
+X.keep <- X.sc[,keep]
 weight.vec <- rep(0, ncol(X.keep))
-(nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
+nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep))
 nb.weight.search <- aum::aum_line_search_grid(
   nb.diffs,
   feature.mat=X.keep,
   weight.vec=weight.vec)
-str(nb.weight.search)
 if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
 }
