@@ -52,7 +52,7 @@ void queueIntersection(
     }
 }
 
-void lineSearch(
+int lineSearch(
         const Line *lines,
         int lineCount,
         const double *deltaFp,
@@ -79,23 +79,26 @@ void lineSearch(
 
     multiset<IntersectionData> intersections;
     // start by queueing intersections of every line and the line after it
-    for (int a = 0; a < lineCount - 1; a++) {
-        int b = a + 1;
-        Point point = intersect(lines[a], lines[b]);
+    for (int lineIndexLowBeforeIntersect = 0;
+	 lineIndexLowBeforeIntersect < lineCount - 1;
+	 lineIndexLowBeforeIntersect++) {
+        int lineIndexHighBeforeIntersect = lineIndexLowBeforeIntersect + 1;
+	if (lines[lineIndexLowBeforeIntersect].intercept >
+	    lines[lineIndexHighBeforeIntersect].intercept) {
+	  return ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING;
+	}
+	if ((lines[lineIndexLowBeforeIntersect].intercept ==
+	     lines[lineIndexHighBeforeIntersect].intercept) &&
+	    (lines[lineIndexLowBeforeIntersect].slope >=
+	     lines[lineIndexHighBeforeIntersect].slope)) {
+	  return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
+	}
+        Point point = intersect
+	  (lines[lineIndexLowBeforeIntersect],
+	   lines[lineIndexHighBeforeIntersect]);
         // parallel lines will be infinite
         if (point.isFinite() && point.x >= 0) {
-            int lineIndexLowBeforeIntersect;
-            int lineIndexHighBeforeIntersect;
-            if (lines[a].intercept < lines[b].intercept) {
-                // a is below b before the intersection point
-                lineIndexLowBeforeIntersect = a;
-                lineIndexHighBeforeIntersect = b;
-            } else {
-                // b is below a before the intersection point
-                lineIndexLowBeforeIntersect = b;
-                lineIndexHighBeforeIntersect = a;
-            }
-            intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
+	  intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
         }
     }
 
@@ -176,4 +179,5 @@ void lineSearch(
         intersections.erase(intersection);
         lastStepSize = stepSize;
     }
+    return 0;//SUCCESS
 }

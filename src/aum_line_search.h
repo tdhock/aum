@@ -54,7 +54,7 @@ namespace std {
  * @param stepSizeVec output vector for the step size of the AUM
  * @param aumVec output vector for the AUM values at the corresponding step sizes
  */
-void lineSearch(
+int lineSearch(
         const Line *lines,
         int lineCount,
         const double *deltaFp,
@@ -67,5 +67,8 @@ void lineSearch(
         double *stepSizeVec,
         double *aumVec
 );
+
+#define ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING 1
+#define ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS 2
 
 #endif //AUM_LINE_SEARCH_AUMLINESEARCH_H

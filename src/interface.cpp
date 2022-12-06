@@ -84,7 +84,7 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum,
     Rcpp::NumericVector stepSizeVec(maxIterations, -1.0);
     Rcpp::NumericVector aumVec(maxIterations, -1.0);
 
-    lineSearch(
+    int status = lineSearch(
             &lines[0],
             lineCount,
             &fpDiff[0],
@@ -95,6 +95,12 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum,
             &stepSizeVec[0],
             &aumVec[0]
     );
+    if(status == ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING){
+      Rcpp::stop("intercepts should be non-decreasing");
+    }
+    if(status == ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS){
+      Rcpp::stop("slopes should be increasing for equal intercepts");
+    }
 
     return Rcpp::DataFrame::create(Rcpp::Named("aum", aumVec), Rcpp::Named("step.size", stepSizeVec));
 }
