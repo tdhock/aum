@@ -1,3 +1,4 @@
+library(testthat)
 intercept.decreasing <- data.frame(
   fp.diff=0, fn.diff=0, intercept=c(0,1,0), slope=0)
 test_that("error when intercepts are decreasing", {
@@ -12,3 +13,5 @@ test_that("error when slope same", {
     aum:::aumLineSearch(slope.same, initialAum=10, maxIterations=10)
   }, "slopes should be increasing for equal intercepts")
 })
+
+

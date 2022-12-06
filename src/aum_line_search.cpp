@@ -43,7 +43,7 @@ void queueIntersection(
     );
 
     // intersection points with infinite values aren't real intersections
-    if (intersectionPoint.isFinite() && intersectionPoint.x >= currentStepSize) {
+    if (intersectionPoint.isFinite() && intersectionPoint.x > currentStepSize) {
         auto intersection = IntersectionData{
                 intersectionPoint, lowLine, highLine
         };
@@ -93,13 +93,10 @@ int lineSearch(
 	     lines[lineIndexHighBeforeIntersect].slope)) {
 	  return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
 	}
-        Point point = intersect
-	  (lines[lineIndexLowBeforeIntersect],
-	   lines[lineIndexHighBeforeIntersect]);
-        // parallel lines will be infinite
-        if (point.isFinite() && point.x >= 0) {
-	  intersections.insert(IntersectionData{point, lineIndexLowBeforeIntersect, lineIndexHighBeforeIntersect});
-        }
+	queueIntersection
+	  (0, lines, intersections,
+	   lineIndexLowBeforeIntersect,
+	   lineIndexHighBeforeIntersect);
     }
 
     // AUM at step size 0

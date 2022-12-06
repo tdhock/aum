@@ -21,7 +21,7 @@ aum_line_search <- structure(function
   L$pred.vec <- pred.vec
   L$gradient_pred <- rowMeans(L$derivative_mat)
   L$gradient <- if(pred.null){
-    L$gradient_weight <- t(feature.mat) %*% L$gradient_pred / nrow(feature.mat)
+    L$gradient_weight <- t(feature.mat) %*% L$gradient_pred
     feature.mat %*% L$gradient_weight
   }else{
     L$gradient_pred
@@ -75,6 +75,56 @@ aum_line_search <- structure(function
   str(nb.weight.search)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
+  ## Example 4: all changepoint examples, with linear model.
+  X.sc <- scale(neuroblastomaProcessed$feature.mat)
+  library(data.table)
+  keep <- apply(is.finite(X.sc), 2, all)
+  X.keep <- X.sc[,keep]
+  set.seed(1)
+  subtrain.i <- sample(1:nrow(X.keep), nrow(X.keep)/2)
+  index.list <- list(
+    subtrain=subtrain.i,
+    validation=-subtrain.i)
+  diff.list <- lapply(index.list, function(set.i){
+    aum::aum_diffs_penalty(nb.err, rownames(X.keep)[set.i])
+  })
+  weight.vec <- rep(0, ncol(X.keep))
+  improvement <- old.aum <- Inf
+  iteration <- 0
+  loss.dt.list <- list()
+  while(improvement > 0){
+    iteration <- iteration+1
+    valid.list <- aum::aum(
+      diff.list$validation, X.keep[index.list$validation,] %*% weight.vec)
+    nb.weight.search <- aum::aum_line_search_grid(
+      diff.list$subtrain,
+      maxIterations=1e5,
+      feature.mat=X.keep[index.list$subtrain,],
+      weight.vec=weight.vec)
+    plot(nb.weight.search)
+    loss.dt.list[[iteration]] <- data.table(
+      iteration,
+      set=c("subtrain", "validation"),
+      aum=c(nb.weight.search$aum, valid.list$aum))
+    all.result <- data.table(nb.weight.search$line_search_result)
+    some.result <- all.result[as.integer(seq(1, .N, l=100))]
+    ##plot(log10(aum) ~ step.size, some.result)
+    exact.dt <- data.table(nb.weight.search$line_search_result)
+    exact.dt[, kink := .I/.N]
+    best.row <- exact.dt[which.min(aum)]
+    cat(sprintf(
+      "iteration=%4d aum=%.6f step=%.6f kink=%f\n",
+      iteration, best.row$aum, best.row$step.size, best.row$kink))
+    improvement <- old.aum-best.row$aum
+    old.aum <- best.row$aum
+    weight.vec <- weight.vec-best.row$step.size*nb.weight.search$gradient_weight
+  }
+  (loss.dt <- do.call(rbind, loss.dt.list))
+  ggplot2::ggplot()+
+    ggplot2::geom_line(ggplot2::aes(
+      iteration, aum, color=set),
+      data=loss.dt)
+  
 })
 
 plot.aum_line_search <- function
@@ -177,10 +227,11 @@ aum_line_search_grid <- structure(function
   str(nb.weight.search)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
   
-  ## Example 4: all changepoint examples, with affine model.
+  ## Example 4: all changepoint examples, with linear model.
   X.sc <- scale(neuroblastomaProcessed$feature.mat[,c("log2.n","log.hall")])
+  library(data.table)
   keep <- apply(is.finite(X.sc), 2, all)
-  X.keep <- cbind(1, X.sc[,keep])
+  X.keep <- X.sc[,keep]
   weight.vec <- rep(0, ncol(X.keep))
   nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep))
   improvement <- old.aum <- Inf
