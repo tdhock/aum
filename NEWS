@@ -1,5 +1,10 @@
 TODOs
 
+2022.12.7
+
+aum_linear_model and aum_linear_model_cv with plot and predict
+methods.
+
 2022.12.1
 
 aum_line_search function with plot method.

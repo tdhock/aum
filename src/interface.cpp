@@ -57,8 +57,13 @@ Rcpp::List aum_sort_interface
   }
   return Rcpp::List::create
     (Rcpp::Named("aum", out_aum),
-     Rcpp::Named("derivative_mat", out_deriv_mat)
-     ) ;
+     Rcpp::Named("derivative_mat", out_deriv_mat),
+     Rcpp::Named
+     ("total_error",
+      Rcpp::DataFrame::create
+      (Rcpp::Named("thresh", out_thresh),
+       Rcpp::Named("fp_before", out_fp_before),
+       Rcpp::Named("fn_before", out_fn_before))));
 }
 
 // [[Rcpp::export]]

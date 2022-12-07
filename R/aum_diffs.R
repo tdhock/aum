@@ -83,6 +83,7 @@ aum_diffs <- structure(function
     stop("example must be integer vector but has class: ", class(example)[1])
   }
   out <- data.table(example, pred, fp_diff, fn_diff)[!is.na(example)]
+  setkey(out, example, pred)
   class(out) <- c("aum_diffs", class(out))
   out
 ### data table of class "aum_diffs" in which each rows represents a
