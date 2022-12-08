@@ -18,7 +18,11 @@ knitr::opts_chunk$set(
 data(package="mlbench")
 data(Sonar, package="mlbench")
 data(DNA, package="mlbench")
+data(spam, package="kernlab")
 data.list <- list(
+  spam=list(
+    input.mat=as.matrix(spam[1:57]),
+    output.vec=ifelse(spam$type=="spam", 1, -1)),
   Sonar=list(
     input.mat=as.matrix(Sonar[,1:60]),
     output.vec=ifelse(Sonar$Class=="R", 1, -1)),

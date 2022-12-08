@@ -13,7 +13,7 @@ which are plotted. Not recommended for large number of examples
 
 \value{ggplot of error functions, each example in a different panel.}
 
-\author{Toby Dylan Hocking}
+\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 

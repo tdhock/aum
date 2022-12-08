@@ -1,5 +1,6 @@
 #include <Rcpp.h>
 #include "aum_sort.h"
+#include "aum_line_search.h"
 
 // [[Rcpp::export]]
 Rcpp::List aum_sort_interface
@@ -56,6 +57,55 @@ Rcpp::List aum_sort_interface
   }
   return Rcpp::List::create
     (Rcpp::Named("aum", out_aum),
-     Rcpp::Named("derivative_mat", out_deriv_mat)
-     ) ;
+     Rcpp::Named("derivative_mat", out_deriv_mat),
+     Rcpp::Named
+     ("total_error",
+      Rcpp::DataFrame::create
+      (Rcpp::Named("thresh", out_thresh),
+       Rcpp::Named("fp_before", out_fp_before),
+       Rcpp::Named("fn_before", out_fn_before))));
+}
+
+// [[Rcpp::export]]
+Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum, int maxIterations) {
+    // extract columnds from dataframe
+    Rcpp::NumericVector fpDiff = df["fp.diff"];
+    Rcpp::NumericVector fnDiff = df["fn.diff"];
+    Rcpp::NumericVector intercept = df["intercept"];
+    Rcpp::NumericVector slope = df["slope"];
+    int lineCount = df.nrow();
+
+    // build lines
+    std::vector<Line> lines;
+    lines.reserve(lineCount);
+    for (int i = 0; i < lineCount; i++) {
+        Line line = Line { slope[i], intercept[i] };
+        lines.push_back(line);
+    }
+
+    Rcpp::NumericVector FP(lineCount, 0.0);
+    Rcpp::NumericVector FN(lineCount, 0.0);
+    Rcpp::NumericVector M(lineCount, 0.0);
+    Rcpp::NumericVector stepSizeVec(maxIterations, -1.0);
+    Rcpp::NumericVector aumVec(maxIterations, -1.0);
+
+    int status = lineSearch(
+            &lines[0],
+            lineCount,
+            &fpDiff[0],
+            &fnDiff[0],
+            initialAum,
+            maxIterations,
+            &FP[0], &FN[0], &M[0],
+            &stepSizeVec[0],
+            &aumVec[0]
+    );
+    if(status == ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING){
+      Rcpp::stop("intercepts should be non-decreasing");
+    }
+    if(status == ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS){
+      Rcpp::stop("slopes should be increasing for equal intercepts");
+    }
+
+    return Rcpp::DataFrame::create(Rcpp::Named("aum", aumVec), Rcpp::Named("step.size", stepSizeVec));
 }
