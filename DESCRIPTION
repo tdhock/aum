@@ -9,7 +9,6 @@ Authors@R: c(
     person("Jadon", "Fowler",
      role="aut",
      comment="Contributed exact line search C++ code"))
-Maintainer: Toby Dylan Hocking <toby.hocking@r-project.org>
 Description: Standard template library sort is
  used to implement an efficient  
  algorithm <arXiv:2107.01285> for computing Area Under Minimum and
@@ -21,12 +20,14 @@ BugReports: https://github.com/tdhock/aum/issues
 Imports: Rcpp, data.table
 Suggests: 
     testthat,
+    kernlab,
     nc,
     ggplot2,
     WeightedROC,
     penaltyLearning,
     knitr, markdown,
     mlbench,
+    lattice,
     directlabels, microbenchmark,
     covr
 VignetteBuilder: knitr
