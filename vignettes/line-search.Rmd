@@ -1,0 +1,154 @@
+<!--
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Accuracy comparison}
+-->
+
+# Accuracy comparison
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width=14  
+)
+```
+
+## Comparing line search with different number of max iterations
+
+The code below compares learning with different values of the
+maxIterations parameter.
+
+```{r}
+data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
+nb.err <- with(neuroblastomaProcessed$errors, data.frame(
+  example=paste0(profile.id, ".", chromosome),
+  min.lambda,
+  max.lambda,
+  fp, fn))
+library(data.table)
+signal.features <- neuroblastomaProcessed$feature.mat[,c("log2.n","log.hall")]
+n.noise <- 20
+set.seed(1)
+noise.features <- matrix(
+  rnorm(n.noise*nrow(signal.features)),
+  nrow(signal.features), n.noise)
+X.sc <- scale(cbind(signal.features, noise.features))
+keep <- apply(is.finite(X.sc), 2, all)
+X.keep <- X.sc[,keep]
+n.folds <- 3
+uniq.folds <- 1:n.folds
+fold.vec <- sample(rep(uniq.folds, l=nrow(X.keep)))
+loss.dt.list <- list()
+timing.dt.list <- list()
+for(valid.fold in uniq.folds){
+  index.list <- list(
+    subtrain=fold.vec!=valid.fold,
+    validation=fold.vec==valid.fold)
+  diff.list <- lapply(index.list, function(set.i){
+    aum::aum_diffs_penalty(nb.err, rownames(X.keep)[set.i])
+  })
+  for(maxIterations in 10^seq(2, 6)){
+    weight.vec <- rep(0, ncol(X.keep))
+    improvement <- old.aum <- Inf
+    step.number <- 0
+    cat(sprintf("fold=%d maxIt=%d\n", valid.fold, maxIterations))
+    seconds <- system.time({
+      while(improvement > 1e-4){
+        step.number <- step.number+1
+        valid.list <- aum::aum(
+          diff.list$validation,
+          X.keep[index.list$validation,] %*% weight.vec)
+        nb.weight.search <- aum::aum_line_search(
+          diff.list$subtrain,
+          maxIterations=maxIterations,
+          feature.mat=X.keep[index.list$subtrain,],
+          weight.vec=weight.vec)
+        loss.dt.list[[paste(
+          valid.fold, step.number, maxIterations
+        )]] <- data.table(
+          valid.fold, step.number, maxIterations,
+          set=c("subtrain", "validation"),
+          aum=c(nb.weight.search$aum, valid.list$aum))
+        exact.dt <- data.table(nb.weight.search$line_search_result)
+        exact.dt[, kink := .I/.N]
+        best.row <- exact.dt[which.min(aum)]
+        improvement <- old.aum-best.row$aum
+        old.aum <- best.row$aum
+        weight.vec <- weight.vec-
+          best.row$step.size*nb.weight.search$gradient_weight
+      }
+    })[["elapsed"]]
+    timing.dt.list[[paste(valid.fold, maxIterations)]] <- data.table(
+      valid.fold, maxIterations, seconds)
+  }
+}
+(timing.dt <- do.call(rbind, timing.dt.list))
+dcast(timing.dt, maxIterations ~ valid.fold, value.var="seconds")
+```
+
+The table above shows the total number of seconds of computation time
+for running gradient descent, for different values of max iterations
+of the exact line search (rows), and for each cross-validation fold
+(columns). It is clear that the minimal computation time is achieved
+by using an intermediate value for max iterations.
+
+```{r}
+loss.dt <- do.call(
+  rbind, loss.dt.list)[
+  , max.step := max(step.number), by=.(maxIterations, valid.fold)][
+  , min.step := min(max.step), by=maxIterations
+  ][step.number<=min.step]
+min.dt <- loss.dt[, .SD[which.min(aum)], by=.(
+  valid.fold, maxIterations, set)]
+if(requireNamespace("ggplot2")){
+  ggplot2::ggplot()+
+    ggplot2::facet_grid(
+      valid.fold ~ maxIterations,
+      labeller=ggplot2::label_both,
+      scales="free")+
+    ggplot2::geom_line(ggplot2::aes(
+      step.number, aum, color=set),
+      data=loss.dt)+
+    ggplot2::geom_point(ggplot2::aes(
+      step.number, aum, color=set),
+      shape=1,
+      data=min.dt)+
+    ggplot2::scale_y_log10()
+}
+```
+
+The plot above has a panel for each number of max iterations of the
+exact line search (from left to right) and for each cross-validation
+fold (from top to bottom). The expected loss curves are evident:
+subtrain always decreasing, validation U shaped.
+
+```{r}
+mean.dt <- loss.dt[, .(
+  mean.aum=mean(aum)
+), by=.(step.number,maxIterations,set)]
+(selected.dt <- mean.dt[set=="validation"][which.min(mean.aum)])
+if(requireNamespace("ggplot2")){
+  ggplot2::ggplot()+
+    ggplot2::facet_grid(
+      . ~ maxIterations,
+      labeller=ggplot2::label_both,
+      scales="free")+
+    ggplot2::geom_line(ggplot2::aes(
+      step.number, mean.aum, color=set),
+      data=mean.dt)+
+    ggplot2::geom_point(ggplot2::aes(
+      step.number, mean.aum, color=set),
+      shape=1,
+      data=selected.dt)+
+    ggplot2::geom_hline(ggplot2::aes(
+      yintercept=mean.aum, color=set),
+      data=selected.dt[, .(mean.aum, set)])+
+    ggplot2::scale_y_log10()
+}
+
+```
+
+The plot above shows the mean AUM over cross-validation folds, for
+each step (X axis) and for each value of max iterations in the exact
+line search (panels from left to right). It is clear that the min
+validation error is about the same for each value of max iterations.

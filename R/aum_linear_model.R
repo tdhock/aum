@@ -1,4 +1,27 @@
-aum_linear_model_cv <- structure(function(feature.mat, diff.dt, maxIterations=nrow(feature.mat), improvement.thresh=NULL, n.folds=3){
+aum_linear_model_cv <- structure(function
+### Cross-validation for learning number of early stopping gradient
+### descent steps with exact line search, in linear model for
+### minimizing AUM.
+(feature.mat,
+### N x P matrix of features, which will be scaled before gradient descent.
+  diff.dt,
+### data table of differences in error functions, from
+### aum_diffs_penalty or aum_diffs_binary. There should be an example
+### column with values from 0 to N-1.
+  maxIterations=nrow(feature.mat),
+### max iterations of the exact line search, default is number of examples.
+  improvement.thresh=NULL,
+### before doing cross-validation to learn the number of gradient
+### descent steps, we do gradient descent on the full data set in
+### order to determine a max number of steps, by continuing to do
+### exact line search steps while the decrease in AUM is greater than
+### this value (positive real number). Default NULL means to use the
+### value which is ten times smaller than the min non-zero absolute
+### value of FP and FN diffs in diff.dt.
+  n.folds=3
+### Number of cross-validation folds to average over to determine the
+### best number of steps of gradient descent.
+){
   if(is.null(improvement.thresh)){
     abs.diff <- diff.dt[, abs(c(fp_diff, fn_diff))]
     not.zero <- abs.diff[0 < abs.diff]
@@ -54,7 +77,14 @@ aum_linear_model_cv <- structure(function(feature.mat, diff.dt, maxIterations=nr
   final.model$intercept.orig <- final.model$intercept-sum(
     final.model$weight.orig*attr(X.sc, "scaled:center")[keep])
   structure(final.model, class="aum_linear_model_cv")
-### Model trained with best number of iterations.
+### Model trained with best number of iterations, represented as a
+### list of class aum_linear_model_cv with named elements: keep is a
+### logical vector telling which features should be kept before doing
+### matrix multiply of learned weight vector, weight.orig/weight.vec
+### and intercept.orig/intercept are the learned weights/intercepts
+### for the original/scaled feature space, fold.loss/set.loss are data
+### tables of loss values for the subtrain/validation sets, used for
+### selecting the best number of gradient descent steps.
 }, ex=function(){
 
   ## learn a model for a real changepoint data set.
@@ -199,7 +229,28 @@ plot.aum_linear_model_cv <- function(x, ...){
     auto.key=list(space="right", points=FALSE, lines=TRUE))
 }
 
-aum_linear_model <- function(feature.list, diff.list, max.steps=NULL, improvement.thresh=NULL, maxIterations=nrow(feature.list$subtrain)){
+aum_linear_model <- function
+### Learn a linear model with weights that minimize AUM. Weights are
+### initialized as a vector of zeros, then optimized using gradient
+### descent with exact line search.
+(feature.list,
+### List with named elements subtrain and optionally validation, each
+### should be a scaled feature matrix.
+  diff.list,
+### List with named elements subtrain and optionally validation, each
+### should be a data table of differences in error functions.
+  max.steps=NULL,
+### positive integer: max number of steps of gradient descent with
+### exact line search (specify either this or improvement.thresh, not
+### both).
+  improvement.thresh=NULL,
+### non-negative real number: keep doing gradient descent while the
+### improvement in AUM is greater than this number (specify either
+### this or max.steps, not both).
+  maxIterations=nrow(feature.list$subtrain)
+### max number of iterations of exact line search, default is number
+### of subtrain examples.
+){
   weight.vec <- rep(0, ncol(feature.list$subtrain))
   improvement <- old.aum <- Inf
   step.number <- 0
@@ -253,6 +304,13 @@ aum_linear_model <- function(feature.list, diff.list, max.steps=NULL, improvemen
       }
     }])
   structure(out.list, class="aum_linear_model")
+### Linear model represented as a list of class aum_linear_model with
+### named elements: loss is a data table of values for subtrain and
+### optionally validation at each step, weight.vec is the final vector
+### of weights learned via gradient descent, and intercept is the
+### value which results in minimal total error (FP+FN), learned via a
+### linear scan over all possible values given the final weight
+### vector.
 }  
 
 plot.aum_linear_model <- function(x, ...){

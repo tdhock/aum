@@ -93,6 +93,7 @@ while(improvement > 1e-4){
     diff.list$validation, X.keep[index.list$validation,] \%*\% weight.vec)
   nb.weight.search <- aum::aum_line_search(
     diff.list$subtrain,
+    maxIterations=100,
     feature.mat=X.keep[index.list$subtrain,],
     weight.vec=weight.vec)
   loss.dt.list[[iteration]] <- data.table(

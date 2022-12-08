@@ -1,5 +1,5 @@
 useDynLib(aum, .registration=TRUE)
-export(aum, aum_line_search, aum_line_search_grid, aum_diffs_binary, aum_diffs_penalty, aum_diffs, aum_errors, aum_linear_model, aum_linear_model_cv)
+export(aum, aum_line_search, aum_line_search_grid, aum_diffs_binary, aum_diffs_penalty, aum_diffs, aum_errors, aum_linear_model_cv)
 importFrom(Rcpp, evalCpp)
 import(data.table)
 S3method("plot", "aum_diffs")

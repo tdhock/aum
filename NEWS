@@ -1,5 +1,11 @@
 TODOs
 
+2022.12.8
+
+bugfix in aum_diffs_penalty(denominator="rate"), which previously
+incorrectly normalized for each example, but now correctly normalizes
+based on the total error over all examples.
+
 2022.12.7
 
 aum_linear_model and aum_linear_model_cv with plot and predict
