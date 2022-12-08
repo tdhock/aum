@@ -21,6 +21,7 @@ BugReports: https://github.com/tdhock/aum/issues
 Imports: Rcpp, data.table
 Suggests: 
     testthat,
+    nc,
     ggplot2,
     WeightedROC,
     penaltyLearning,
