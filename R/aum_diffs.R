@@ -210,7 +210,10 @@ aum_diffs_penalty <- structure(function
       paste(bad.ex.vec, collapse=" "))
   }
   if(identical(denominator, "rate")){
-    err.dt[, `:=`(max.fp=max(fp), max.fn=max(fn)), by=example]
+    total <- err.dt[, .(
+      fp=max(fp), 
+      fn=max(fn)
+    ), by=example]
   }
   with(err.dt, {
     is.end <- min.lambda == 0
@@ -221,8 +224,8 @@ aum_diffs_penalty <- structure(function
     fn_diff <- mydiff(fn)
     keep <- fp_diff != 0 | fn_diff != 0
     if(identical(denominator, "rate")){
-      fp.denom <- max.fp[keep]
-      fn.denom <- max.fn[keep]
+      fp.denom <- sum(total$fp)
+      fn.denom <- sum(total$fn)
     }else{
       fp.denom <- 1
       fn.denom <- 1
