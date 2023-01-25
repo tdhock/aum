@@ -18,9 +18,11 @@ aum_linear_model_cv <- structure(function
 ### this value (positive real number). Default NULL means to use the
 ### value which is ten times smaller than the min non-zero absolute
 ### value of FP and FN diffs in diff.dt.
-  n.folds=3
+  n.folds=3,
 ### Number of cross-validation folds to average over to determine the
 ### best number of steps of gradient descent.
+  initial.weight.fun=NULL
+### Function for computing initial weight vector in gradient descent.
 ){
   example.totals <- diff.dt[, .(
     fn=sum(fn_diff),
@@ -31,6 +33,7 @@ aum_linear_model_cv <- structure(function
     abs.diff <- diff.dt[, abs(c(fp_diff, fn_diff))]
     not.zero <- abs.diff[0 < abs.diff]
     improvement.thresh <- min(not.zero)/10
+    ## TODO: does this heuristic generalize well to other data sets?
   }
   X.sc <- scale(feature.mat)
   keep <- apply(is.finite(X.sc), 2, all)
@@ -39,6 +42,7 @@ aum_linear_model_cv <- structure(function
   train.diffs <- list(subtrain=diff.dt)
   overfit.model <- aum_linear_model(
     train.features, train.diffs,
+    initial.weight.fun=initial.weight.fun,
     improvement.thresh=improvement.thresh,
     maxIterations=maxIterations)
   uniq.folds <- 1:n.folds
@@ -69,6 +73,7 @@ aum_linear_model_cv <- structure(function
     })
     valid.model <- aum_linear_model(
       feature.list, diff.list,
+      initial.weight.fun=initial.weight.fun,
       max.steps=max(overfit.model$loss$step.number),
       maxIterations=maxIterations)
     valid.model$loss
@@ -81,6 +86,7 @@ aum_linear_model_cv <- structure(function
   best.row <- set.loss[set=="validation"][which.min(aum_mean)]
   final.model <- aum_linear_model(
     train.features, train.diffs,
+    initial.weight.fun=initial.weight.fun,
     max.steps=best.row$step.number,
     maxIterations=maxIterations)
   final.model$fold.loss <- fold.loss
@@ -144,11 +150,18 @@ aum_linear_model <- function
 ### non-negative real number: keep doing gradient descent while the
 ### improvement in AUM is greater than this number (specify either
 ### this or max.steps, not both).
-  maxIterations=nrow(feature.list$subtrain)
+  maxIterations=nrow(feature.list$subtrain),
 ### max number of iterations of exact line search, default is number
 ### of subtrain examples.
+  initial.weight.fun=NULL
+### Function for computing initial weights, default NULL means use a
+### random standard normal vector.
 ){
-  weight.vec <- rnorm(ncol(feature.list$subtrain))
+  weight.vec <- if(is.null(initial.weight.fun)){
+    rnorm(ncol(feature.list$subtrain))
+  }else{
+    initial.weight.fun(feature.list$subtrain, diff.list$subtrain)
+  }
   improvement <- old.aum <- Inf
   step.number <- 0
   loss.dt.list <- list()
