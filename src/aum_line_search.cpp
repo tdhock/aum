@@ -52,6 +52,44 @@ void queueIntersection(
     }
 }
 
+class TotalAUC {
+  public:
+  vector<double> *FPR, *FNR;
+  double value;
+  int lineCount;
+  TotalAUC(vector<double> *FPR_, vector<double> *FNR_, int lineCount_){
+    FPR = FPR_;
+    FNR = FNR_;
+    lineCount = lineCount_;
+  }
+  double tpr(int rank){
+    if(rank==lineCount)return 1;
+    return 1-(*FNR)[rank];
+  }
+  double fpr(int rank){
+    if(rank==lineCount)return 1;
+    return (*FPR)[rank];
+  }
+  double get_auc(int leftRank, int rightRank){
+    double FPR_diff = fpr(rightRank)-fpr(leftRank);
+    double TPR_sum = tpr(rightRank)+tpr(leftRank);
+    return FPR_diff*TPR_sum/2;
+  }
+  void update
+  (int first_rightRank, 
+   int last_rightRank,
+   double sign){
+    for
+      (int rightRank=first_rightRank; 
+       rightRank <= last_rightRank; 
+       rightRank++){
+      int leftRank=rightRank-1;
+      double roc_change = sign*get_auc(leftRank, rightRank);
+      value += roc_change;
+    }
+  }
+};
+
 int lineSearch(
         const Line *lines,
         int lineCount,
@@ -59,24 +97,23 @@ int lineSearch(
         const double *deltaFn,
         double initialAum,
         int maxIterations,
-        double *FP,
-        double *FN,
-        double *M,
         double *stepSizeVec,
-        double *aumVec
+        double *aumVec, 
+        double *aucAtStepVec,
+        double *aucAfterStepVec
 ) {
-    // a list of indices of lines
-    // this is updated as we move across the X axis, passing intersection points changes the indices
-    vector<int> sortedIndices;
-    // map from line number to index of line
-    vector<int> backwardsIndices;
-    sortedIndices.reserve(lineCount);
-    backwardsIndices.reserve(lineCount);
+    // a list of indices of lines map from rank (index when sorted by
+    // threshold) to id of line (in FP/FN/etc indices).
+    vector<int> id_from_rank(lineCount);
+    // map from line number (id) to rank (index in sorted vector) of line.
+    vector<int> rank_from_id(lineCount);
+    vector<double> FP(lineCount);
+    vector<double> FN(lineCount);
+    vector<double> M(lineCount);
     for (int i = 0; i < lineCount; i++) {
-        sortedIndices.push_back(i);
-        backwardsIndices.push_back(i);
+        id_from_rank[i] = i;
+        rank_from_id[i] = i;
     }
-
     multiset<IntersectionData> intersections;
     // start by queueing intersections of every line and the line after it
     for (int lineIndexLowBeforeIntersect = 0;
@@ -106,65 +143,76 @@ int lineSearch(
     double aumSlope = 0.0;
     double lastStepSize = 0.0;
 
+    // build FP, FN, & M, and compute initial aum slope.
+    FP[0]=0;
+    FN[0]=1;
     FN[lineCount - 1] = -deltaFn[lineCount - 1];
     for (int b = lineCount - 2; b >= 1; b--) {
         FN[b] = FN[b + 1] - deltaFn[b];
     }
-
-    // build FP, FN, & M, and compute initial aum slope
     for (int b = 1; b < lineCount; b++) {
         double slopeDiff = lines[b].slope - lines[b - 1].slope;
         FP[b] = FP[b - 1] + deltaFp[b - 1];
         M[b] = min(FP[b], FN[b]);
         aumSlope += slopeDiff * M[b];
     }
+    // initialize AUC.
+    TotalAUC total_auc(&FP, &FN, lineCount);
+    total_auc.value = 0;
+    total_auc.update(1, lineCount, 1.0);
+    aucAtStepVec[0] = aucAfterStepVec[0] = total_auc.value;
     double aum = initialAum;
-
-    for (int iterations = 1; iterations < maxIterations && !intersections.empty(); iterations++) {
+    for (int iteration = 1; iteration < maxIterations && !intersections.empty(); iteration++) {
         auto intersection = *intersections.begin();
-        // swap the indices of the lines that make this intersection point
-        // the names of these variables look backwards because they get swapped
-        int lineIndexLowAfterIntersect = backwardsIndices[intersection.lineLowBeforeIntersect];
-        int lineIndexHighAfterIntersect = backwardsIndices[intersection.lineHighBeforeIntersect];
-        swap(backwardsIndices[intersection.lineLowBeforeIntersect], backwardsIndices[intersection.lineHighBeforeIntersect]);
-        swap(sortedIndices[lineIndexHighAfterIntersect], sortedIndices[lineIndexLowAfterIntersect]);
-
-        // indices of the next lines we want to find intersections for
-        int higherLineIndex = lineIndexHighAfterIntersect + 1;
-        int lowerLineIndex = lineIndexLowAfterIntersect - 1;
-
         // (∆FP of top line) - (∆FP of bottom line)
-        double deltaFpDiff = deltaFp[intersection.lineHighBeforeIntersect] - deltaFp[intersection.lineLowBeforeIntersect];
-        double deltaFnDiff = deltaFn[intersection.lineHighBeforeIntersect] - deltaFn[intersection.lineLowBeforeIntersect];
-
-        // b ∈ {2, . . . , B} is the index of the function which is larger before intersection point
-        int b = lineIndexHighAfterIntersect;
+        double deltaFpDiff = 
+          deltaFp[intersection.lineHighBeforeIntersect] - 
+          deltaFp[intersection.lineLowBeforeIntersect];
+        double deltaFnDiff = 
+          deltaFn[intersection.lineHighBeforeIntersect] - 
+          deltaFn[intersection.lineLowBeforeIntersect];
+        // b ∈ {2, . . . , B} is the rank of the function which is
+        // larger before intersection point
+        int b = rank_from_id[intersection.lineHighBeforeIntersect];
         // current step size we're at
         double stepSize = intersection.point.x;
-
+        total_auc.update(b, b+1, -1.0);
+        aucAtStepVec[iteration] = 
+          total_auc.value+total_auc.get_auc(b-1, b+1);
         // update FP & FN
         FP[b] += deltaFpDiff;
         FN[b] += deltaFnDiff;
         double minBeforeIntersection = M[b];
         M[b] = min(FP[b], FN[b]);
-
-        // queue the next intersections in the multiset
-        // this creates an intersection between "lineIndexHighAfterIntersect" and "higherLineIndex"
-        // "lineIndexHighAfterIntersect" will now be the index of the low line before this new intersection point
-        if (higherLineIndex < lineCount) {
-            queueIntersection(stepSize, lines, intersections,
-                              intersection.lineLowBeforeIntersect, sortedIndices[higherLineIndex]);
+        total_auc.update(b, b+1, 1.0);
+        aucAfterStepVec[iteration] = total_auc.value;
+        swap
+          (rank_from_id[intersection.lineLowBeforeIntersect], 
+           rank_from_id[intersection.lineHighBeforeIntersect]);
+        swap
+          (id_from_rank[b], 
+           id_from_rank[b-1]);
+        // queue the next intersections in the multiset.
+        int higherRank = b + 1;
+        if (higherRank < lineCount) {
+            queueIntersection
+              (stepSize, lines, intersections,
+               intersection.lineLowBeforeIntersect, 
+               id_from_rank[higherRank]);
         }
-        if (lowerLineIndex >= 0) {
-            queueIntersection(stepSize, lines, intersections,
-                              sortedIndices[lowerLineIndex], intersection.lineHighBeforeIntersect);
+        int lowerRank = b - 2;
+        if (lowerRank >= 0) {
+            queueIntersection
+              (stepSize, lines, intersections,
+               id_from_rank[lowerRank], 
+               intersection.lineHighBeforeIntersect);
         }
 
         double aumDiff = aumSlope * (stepSize - lastStepSize);
         aum += aumDiff;
 
-        stepSizeVec[iterations] = stepSize;
-        aumVec[iterations] = aum;
+        stepSizeVec[iteration] = stepSize;
+        aumVec[iteration] = aum;
 
         // update aum slope
         double slopeDiff = lines[intersection.lineHighBeforeIntersect].slope - lines[intersection.lineLowBeforeIntersect].slope;

@@ -61,6 +61,12 @@ aum_line_search <- structure(function
   if(requireNamespace("ggplot2"))plot(nb.diffs)
   nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=c(1,-1))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
+##         aum step.size aucAtStep aucAfterStep
+## 1 0.5180666 0.0000000       0.0          0.0
+## 2 0.2516401 0.1332133       0.5          1.0
+## 3 0.2516401 0.4038271       0.5          0.5
+## 4 0.0000000 0.5296472       1.0          1.5
+  aum::aum_line_search(nb.diffs, pred.vec=c(1,-1)-c(1,-1)*0.5)
 
   ## Example 3: all changepoint examples, with linear model.
   X.sc <- scale(neuroblastomaProcessed$feature.mat)

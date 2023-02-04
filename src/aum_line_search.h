@@ -61,11 +61,10 @@ int lineSearch(
         const double *deltaFn,
         double initialAum,
         int maxIterations,
-        double *FP,
-        double *FN,
-        double *M,
         double *stepSizeVec,
-        double *aumVec
+        double *aumVec,
+        double *aucAtStepVec,
+        double *aucAfterStepVec
 );
 
 #define ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING 1
