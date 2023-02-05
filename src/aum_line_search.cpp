@@ -1,9 +1,13 @@
 #include "aum_line_search.h"
-
+#define EPSILON 1e-6
 using namespace std;
 
+double Line::thresh(double step) const {
+  return intercept+slope*step;
+}
+
 bool Point::operator==(const Point other) const {
-    return fabs(x - other.x) < 1e-6 && fabs(y - other.y) < 1e-6;
+    return fabs(x - other.x) < EPSILON && fabs(y - other.y) < EPSILON;
 }
 
 bool Point::isFinite() const {
@@ -102,8 +106,8 @@ int lineSearch(
         double *aucAtStepVec,
         double *aucAfterStepVec
 ) {
-    // a list of indices of lines map from rank (index when sorted by
-    // threshold) to id of line (in FP/FN/etc indices).
+    // map from rank (index when sorted by threshold) to id of line
+    // (in FP/FN/etc indices).
     vector<int> id_from_rank(lineCount);
     // map from line number (id) to rank (index in sorted vector) of line.
     vector<int> rank_from_id(lineCount);
@@ -159,8 +163,25 @@ int lineSearch(
     // initialize AUC.
     TotalAUC total_auc(&FP, &FN, lineCount);
     total_auc.value = 0;
+    int last_line = 0;
+    double last_thresh = lines[0].thresh(0);
+    for(int line_i=1; line_i<=lineCount; line_i++){
+      double thresh;
+      if(line_i==lineCount){
+        thresh = INFINITY;
+      }else{
+        thresh = lines[line_i].thresh(0);
+      }
+      if(last_thresh < thresh){
+        total_auc.value += total_auc.get_auc(last_line, line_i);
+        last_line = line_i;
+        last_thresh = thresh;
+      }
+    }
+    aucAtStepVec[0] = total_auc.value;
+    total_auc.value = 0;
     total_auc.update(1, lineCount, 1.0);
-    aucAtStepVec[0] = aucAfterStepVec[0] = total_auc.value;
+    aucAfterStepVec[0] = total_auc.value;
     double aum = initialAum;
     for (int iteration = 1; iteration < maxIterations && !intersections.empty(); iteration++) {
         auto intersection = *intersections.begin();

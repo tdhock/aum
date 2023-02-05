@@ -7,9 +7,11 @@
 #include <cmath>
 #include <unordered_set>
 
-struct Line {
-    double slope;
-    double intercept;
+class Line {
+  public:
+  double slope;
+  double intercept;
+  double thresh(double step) const;
 };
 
 struct Point {
