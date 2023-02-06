@@ -27,3 +27,9 @@ test_that("line search initial auc correct no tie", {
     data.frame(aum=0, step.size=2, aucAtStep=0.5, aucAfterStep=1)))
 })
 
+three.intersect <- data.frame(
+  intercept=c(-1,0,1), 
+  slope=c(1, 0, -1),
+  fp.diff=c(0.5,0,0.5), 
+  fn.diff=c(0,-0.5,-0.5))
+aum:::aumLineSearch(three.intersect, initialAum = 2, maxIterations = 3)

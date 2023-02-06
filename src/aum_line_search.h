@@ -3,9 +3,8 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
-#include <set>
+#include <map>
 #include <cmath>
-#include <unordered_set>
 
 class Line {
   public:
@@ -28,20 +27,10 @@ Point intersect(Line a, Line b);
 struct IntersectionData {
     Point point;
     // "low" line is the line below the other before the intersection point
-    int lineLowBeforeIntersect;
+    int min_rank;
     // "high" line is the line above the other after the intersection point
-    int lineHighBeforeIntersect;
+    int max_rank;
 };
-
-namespace std {
-    // hash implementation for Point used in the multiset below
-    template<>
-    struct hash<Point> {
-        size_t operator()(const Point &point) const noexcept {
-            return ((uint64_t) point.x) << 32 | ((uint64_t) point.y);
-        }
-    };
-}
 
 /**
  * Line Search
