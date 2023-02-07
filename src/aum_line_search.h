@@ -42,7 +42,6 @@ int lineSearch(
         int lineCount,
         const double *deltaFp,
         const double *deltaFn,
-        double initialAum,
         int maxIterations,
         double *stepSizeVec,
         double *aumVec,

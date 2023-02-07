@@ -36,7 +36,7 @@ aum_line_search <- structure(function
     fp.diff=sum(fp.diff),
     fn.diff=sum(fn.diff)
   ), keyby=.(intercept, slope)]
-  line.search.all <- aumLineSearch(L$line_search_input, L$aum, maxIterations)
+  line.search.all <- aumLineSearch(L$line_search_input, maxIterations)
   keep <- 0 <= line.search.all$step.size 
   L$line_search_result <- line.search.all[keep,]
   class(L) <- c("aum_line_search", class(L))

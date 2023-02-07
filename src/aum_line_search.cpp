@@ -186,7 +186,6 @@ int lineSearch(
         int lineCount,
         const double *deltaFp,
         const double *deltaFn,
-        double initialAum,
         int maxIterations,
         double *stepSizeVec,
         double *aumVec, 
@@ -225,6 +224,7 @@ int lineSearch(
     }
     //queue.print();
     double lastStepSize = 0.0;
+    double aum = 0.0;
     // build FP, FN, & M, and compute initial aum slope.
     FP[0]=0;
     FN[0]=1;
@@ -233,9 +233,9 @@ int lineSearch(
         FN[b] = FN[b + 1] - deltaFn[b];
     }
     for (int b = 1; b < lineCount; b++) {
-        double slopeDiff = lines[b].slope - lines[b - 1].slope;
         FP[b] = FP[b - 1] + deltaFp[b - 1];
         M[b] = min(FP[b], FN[b]);
+        aum += M[b]*(lines[b].intercept-lines[b-1].intercept);
     }
     // initialize AUC.
     TotalAUC total_auc(&FP, &FN, &M, &id_from_rank, lines, lineCount);
@@ -259,11 +259,10 @@ int lineSearch(
     total_auc.value = 0;
     total_auc.update(1, lineCount, 1.0);
     // AUM at step size 0
-    aumVec[0] = initialAum;
+    aumVec[0] = aum;
     aumSlopeAfterStepVec[0] = total_auc.aum_slope;
     stepSizeVec[0] = 0.0;
     aucAfterStepVec[0] = total_auc.value;
-    double aum = initialAum;
     for//iterations/step sizes
       (int iteration = 1; 
        iteration < maxIterations && !queue.actions.empty(); 
