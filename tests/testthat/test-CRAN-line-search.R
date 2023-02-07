@@ -16,20 +16,28 @@ test_that("error when slope same", {
 test_that("line search initial auc correct for tie", {
   bin.diffs <- aum::aum_diffs_binary(c(0,1))
   L <- aum::aum_line_search(bin.diffs, pred.vec=c(0,0))
-  expect_equal(L$line_search_result$aucAtStep, 0.5)
-  expect_equal(L$line_search_result$aucAfterStep, 1)
+  expected.row <- data.frame(
+    aum=0, aum.slope.after=0, step.size=0, auc=0.5, auc.after=1)
+  expect_equal(L$line_search_result, expected.row)
 })
 test_that("line search initial auc correct no tie", {
   bin.diffs <- aum::aum_diffs_binary(c(0,1))
   L <- aum::aum_line_search(bin.diffs, pred.vec=c(2,-2))
   expect_equal(L$line_search_result, rbind(
-    data.frame(aum=4, step.size=0, aucAtStep=0, aucAfterStep=0),
-    data.frame(aum=0, step.size=2, aucAtStep=0.5, aucAfterStep=1)))
+    data.frame(aum=4, aum.slope.after=-2, step.size=0, auc=0, auc.after=0),
+    data.frame(aum=0, aum.slope.after=0, step.size=2, auc=0.5, auc.after=1)))
 })
 
-three.intersect <- data.frame(
-  intercept=c(-1,0,1), 
-  slope=c(1, 0, -1),
-  fp.diff=c(0.5,0,0.5), 
-  fn.diff=c(0,-0.5,-0.5))
-aum:::aumLineSearch(three.intersect, initialAum = 2, maxIterations = 3)
+test_that("contrived tie computed ok", {
+  three.intersect <- data.frame(
+    intercept=c(-1,0,1), 
+    slope=c(1, 0, -1),
+    fp.diff=c(0.5,0,0.5), 
+    fn.diff=c(0,-0.5,-0.5))
+  L <- aum:::aumLineSearch(
+    three.intersect, initialAum = 1, maxIterations = 2)
+  (expected.df <- rbind(
+    data.frame(aum=1, aum.slope.after=-1, step.size=0, auc=3/8, auc.after=3/8),
+    data.frame(aum=0, aum.slope.after=0.5, step.size=1, auc=0.5, auc.after=5/8)))
+  expect_equal(L, expected.df)
+})

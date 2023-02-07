@@ -56,12 +56,23 @@ class Actions {
 
 class TotalAUC {
   public:
-  vector<double> *FPR, *FNR;
-  double value;
+  vector<double> *FPR, *FNR, *M;
+  vector<int> *id_from_rank;
+  const Line *lines;
+  double value, aum_slope;
   int lineCount;
-  TotalAUC(vector<double> *FPR_, vector<double> *FNR_, int lineCount_){
+  TotalAUC
+  (vector<double> *FPR_, 
+   vector<double> *FNR_, 
+   vector<double> *M_, 
+   vector<int> *id_from_rank_,
+   const Line *lines_,
+   int lineCount_){
     FPR = FPR_;
     FNR = FNR_;
+    M = M_;
+    id_from_rank = id_from_rank_;
+    lines = lines_;
     lineCount = lineCount_;
   }
   double tpr(int rank){
@@ -72,8 +83,12 @@ class TotalAUC {
     if(rank==lineCount)return 1;
     return (*FPR)[rank];
   }
+  double m(int rank){
+    if(rank==lineCount)return 0;
+    return (*M)[rank];
+  }
   double get_auc(int leftRank, int rightRank){
-    printf("%d %f,%f -> %d %f,%f\n", leftRank, fpr(leftRank), tpr(leftRank), rightRank, fpr(rightRank), tpr(rightRank));
+    //printf("%d %f,%f -> %d %f,%f\n", leftRank, fpr(leftRank), tpr(leftRank), rightRank, fpr(rightRank), tpr(rightRank));
     double FPR_diff = fpr(rightRank)-fpr(leftRank);
     double TPR_sum = tpr(rightRank)+tpr(leftRank);
     return FPR_diff*TPR_sum/2;
@@ -82,6 +97,7 @@ class TotalAUC {
   (int first_rightRank, 
    int last_rightRank,
    double sign){
+    //printf("update(%d,%d,%f)\n", first_rightRank,  last_rightRank,  sign);
     for
       (int rightRank=first_rightRank; 
        rightRank <= last_rightRank; 
@@ -89,6 +105,15 @@ class TotalAUC {
       int leftRank=rightRank-1;
       double roc_change = sign*get_auc(leftRank, rightRank);
       value += roc_change;
+    }
+    for
+      (int rank=first_rightRank-1; 
+       rank < last_rightRank; 
+       rank++){
+      int id = (*id_from_rank)[rank];
+      double rank_slope = lines[id].slope;
+      double min_diff = m(rank)-m(rank+1);
+      aum_slope += sign*rank_slope*min_diff;
     }
   }
   double action(Actions *act_ptr, double sign){
@@ -99,7 +124,7 @@ class TotalAUC {
        ranks_it++){
       int low_rank=ranks_it->first+1;
       int high_rank=ranks_it->second+1;
-      printf("action low=%d hi=%d sign=%f\n", low_rank, high_rank, sign);
+      //printf("action low=%d hi=%d sign=%f\n", low_rank, high_rank, sign);
       update(low_rank, high_rank, sign);
       more_auc_at_step += get_auc(ranks_it->first, high_rank);
     }
@@ -129,7 +154,7 @@ class Queue {
     // intersection points with infinite values aren't real intersections
     if (intersectionPoint.isFinite() && intersectionPoint.x > prevStepSize) {
       auto it = actions.lower_bound(intersectionPoint.x);
-      printf("after lower_bound high_rank=%d size=%d step=%f\n", high_rank, actions.size(), intersectionPoint.x);
+      //printf("after lower_bound high_rank=%d size=%d step=%f\n", high_rank, actions.size(), intersectionPoint.x);
       if(it == actions.end() || it->first != intersectionPoint.x){
         actions.insert
           (it, pair<double,Actions>(intersectionPoint.x, Actions(high_rank)));
@@ -165,6 +190,7 @@ int lineSearch(
         int maxIterations,
         double *stepSizeVec,
         double *aumVec, 
+        double *aumSlopeAfterStepVec,
         double *aucAtStepVec,
         double *aucAfterStepVec
 ) {
@@ -179,7 +205,7 @@ int lineSearch(
         id_from_rank[i] = i;
     }
     Queue queue(&id_from_rank, lines);
-    print_ids(id_from_rank);
+    //print_ids(id_from_rank);
     // start by queueing intersections of every line and the line after it
     for (int lineIndexLowBeforeIntersect = 0;
 	 lineIndexLowBeforeIntersect < lineCount - 1;
@@ -197,12 +223,7 @@ int lineSearch(
 	}
 	queue.add(0, lineIndexHighBeforeIntersect);
     }
-    queue.print();
-    // AUM at step size 0
-    double intercept = initialAum;
-    aumVec[0] = intercept;
-    stepSizeVec[0] = 0.0;
-    double aumSlope = 0.0;
+    //queue.print();
     double lastStepSize = 0.0;
     // build FP, FN, & M, and compute initial aum slope.
     FP[0]=0;
@@ -215,10 +236,9 @@ int lineSearch(
         double slopeDiff = lines[b].slope - lines[b - 1].slope;
         FP[b] = FP[b - 1] + deltaFp[b - 1];
         M[b] = min(FP[b], FN[b]);
-        aumSlope += slopeDiff * M[b];
     }
     // initialize AUC.
-    TotalAUC total_auc(&FP, &FN, lineCount);
+    TotalAUC total_auc(&FP, &FN, &M, &id_from_rank, lines, lineCount);
     total_auc.value = 0;
     int last_line = 0;
     double last_thresh = lines[0].thresh(0);
@@ -238,6 +258,10 @@ int lineSearch(
     aucAtStepVec[0] = total_auc.value;
     total_auc.value = 0;
     total_auc.update(1, lineCount, 1.0);
+    // AUM at step size 0
+    aumVec[0] = initialAum;
+    aumSlopeAfterStepVec[0] = total_auc.aum_slope;
+    stepSizeVec[0] = 0.0;
     aucAfterStepVec[0] = total_auc.value;
     double aum = initialAum;
     for//iterations/step sizes
@@ -246,8 +270,7 @@ int lineSearch(
        iteration++){
       auto act_it = queue.actions.begin();
       double stepSize = act_it->first;
-      double aumDiff = aumSlope * (stepSize - lastStepSize);
-      aum += aumDiff;
+      aum += total_auc.aum_slope * (stepSize - lastStepSize);
       stepSizeVec[iteration] = stepSize;
       aumVec[iteration] = aum;
       Actions *act_ptr = &act_it->second;
@@ -280,10 +303,10 @@ int lineSearch(
           FNtot += deltaFn[high_id];
           FNhi[high_rank] = FNtot;
         }
-        print_dbl(FPlo, "FPlo");
-        print_dbl(FNlo, "FNlo");
-        print_dbl(FPhi, "FPhi");
-        print_dbl(FNhi, "FNhi");
+        // print_dbl(FPlo, "FPlo");
+        // print_dbl(FNlo, "FNlo");
+        // print_dbl(FPhi, "FPhi");
+        // print_dbl(FNhi, "FNhi");
         for//adjacent lines in an intersection point. (tie-breaking type 2)
           (int low_rank=ranks_it->first; 
            low_rank<ranks_it->second; 
@@ -298,20 +321,14 @@ int lineSearch(
           FN[high_rank] += deltaFnDiff;
           double minBeforeIntersection = M[high_rank];
           M[high_rank] = min(FP[high_rank], FN[high_rank]);
-          // update aum slope TODO
-          double slopeDiff = lines[high_id].slope - lines[low_id].slope;
-          // this is the D^(k+1) update rule in the paper,
-          // it updates the AUM slope for the next iteration
-          double mAfter = high_rank + 1 < lineCount ? M[high_rank + 1] : 0;
-          double min_term = mAfter+M[high_rank-1]-M[high_rank]-minBeforeIntersection;
-          aumSlope += slopeDiff * min_term;
         }
         reverse
           (id_from_rank.begin()+ranks_it->first, 
            id_from_rank.begin()+ranks_it->second+1);
-        print_ids(id_from_rank);
+        //print_ids(id_from_rank);
       }
       total_auc.action(act_ptr, 1.0);
+      aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
       aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
       aucAfterStepVec[iteration] = total_auc.value;
       // queue the next actions/intersections.
@@ -331,7 +348,7 @@ int lineSearch(
         prev_high_rank = ranks_it->second;
       }
       queue.actions.erase(act_it);
-      queue.print();
+      //queue.print();
       lastStepSize = stepSize;
     }
     return 0;//SUCCESS

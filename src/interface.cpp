@@ -88,6 +88,7 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum,
     Rcpp::NumericVector M(lineCount, 0.0);
     Rcpp::NumericVector stepSizeVec(maxIterations, -1.0);
     Rcpp::NumericVector aumVec(maxIterations, -1.0);
+    Rcpp::NumericVector aumSlopeAfterStepVec(maxIterations, -100.0);
     Rcpp::NumericVector aucAtStepVec(maxIterations, -1.0);
     Rcpp::NumericVector aucAfterStepVec(maxIterations, -1.0);
 
@@ -100,6 +101,7 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum,
             maxIterations,
             &stepSizeVec[0],
             &aumVec[0],
+            &aumSlopeAfterStepVec[0],
             &aucAtStepVec[0],
             &aucAfterStepVec[0]
     );
@@ -112,7 +114,8 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, const double initialAum,
 
     return Rcpp::DataFrame::create
       (Rcpp::Named("aum", aumVec), 
+       Rcpp::Named("aum.slope.after", aumSlopeAfterStepVec), 
        Rcpp::Named("step.size", stepSizeVec),
-       Rcpp::Named("aucAtStep", aucAtStepVec),
-       Rcpp::Named("aucAfterStep", aucAfterStepVec));
+       Rcpp::Named("auc", aucAtStepVec),
+       Rcpp::Named("auc.after", aucAfterStepVec));
 }

@@ -24,14 +24,6 @@ struct Point {
 
 Point intersect(Line a, Line b);
 
-struct IntersectionData {
-    Point point;
-    // "low" line is the line below the other before the intersection point
-    int min_rank;
-    // "high" line is the line above the other after the intersection point
-    int max_rank;
-};
-
 /**
  * Line Search
  * @param lines lines array
@@ -54,6 +46,7 @@ int lineSearch(
         int maxIterations,
         double *stepSizeVec,
         double *aumVec,
+        double *aumSlopeAfterStepVec,
         double *aucAtStepVec,
         double *aucAfterStepVec
 );
