@@ -62,9 +62,49 @@ test_that("join to three way tie computed ok", {
     fp.diff=c(0.5,0,0.5,0), 
     fn.diff=c(0,-0.5,0,-0.5))
   L <- aum:::aumLineSearch(four.intersect, maxIterations = 3)
-  (expected.df <- rbind(
-    data.frame(aum=3, aum.slope.after=-1, step.size=0, auc=1/4, auc.after=1/4),
-    data.frame(aum=2, aum.slope.after=-1, step.size=1, auc=1/2, auc.after=3/4),
-    data.frame(aum=0, aum.slope.after=0, step.size=3, auc=7/8, auc.after=1)))
   expect_equal(L$step.size, c(0,1,3))
+})
+
+test_that("join to three way tie then another", {
+  four.intersect <- data.frame(
+    intercept=c(-3,-1,0,3), 
+    slope=c(1,0,0,-1),
+    fp.diff=c(0.5,0,0.5,0), 
+    fn.diff=c(0,-0.5,0,-0.5))
+  L <- aum:::aumLineSearch(four.intersect, maxIterations = 4)
+  if(require(ggplot2)){
+    ggplot()+
+      theme_bw()+
+      geom_abline(aes(
+        slope=slope, intercept=intercept),
+        data=four.intersect)+
+      geom_vline(aes(
+        xintercept=step.size),
+        color="red",
+        data=L)+
+      coord_cartesian(xlim=c(0, 5), ylim=c(-3,3))
+  }
+  expect_equal(L$step.size, c(0,2,3,4))
+})
+
+test_that("several ties", {
+  several.intersect <- data.frame(
+    intercept=c(-3,-1,0,3,4,8), 
+    slope=c(1,0,0,-1,1,-1),
+    fp.diff=c(0.5,0,0.25,0,0.25,0), 
+    fn.diff=c(0,-0.25,0,-0.25,0,-0.5))
+  (L <- aum:::aumLineSearch(several.intersect, maxIterations = 7))
+  if(require(ggplot2)){
+    ggplot()+
+      theme_bw()+
+      geom_abline(aes(
+        slope=slope, intercept=intercept),
+        data=several.intersect)+
+      geom_vline(aes(
+        xintercept=step.size),
+        color="red",
+        data=L)+
+      coord_cartesian(xlim=c(0, 10), ylim=c(-3,8))
+  }
+  expect_equal(L$step.size, c(0,2,3,4,5.5,8,9))
 })

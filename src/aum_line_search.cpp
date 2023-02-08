@@ -222,7 +222,6 @@ int lineSearch(
 	}
 	queue.add(0, lineIndexHighBeforeIntersect);
     }
-    //queue.print();
     double lastStepSize = 0.0;
     double aum = 0.0;
     // build FP, FN, & M, and compute initial aum slope.
@@ -279,41 +278,39 @@ int lineSearch(
         (auto ranks_it = act_ptr->ranks.begin(); 
          ranks_it != act_ptr->ranks.end();
          ranks_it++){
-        double FPtot=0, FNtot=0;
+        double FPhi_tot=0, FPlo_tot=0, FNhi_tot=0, FNlo_tot=0;
         for//adjacent lines in an intersection point. (tie-breaking type 2)
           (int low_rank=ranks_it->first; 
            low_rank<ranks_it->second; 
            low_rank++){
+          int offset = low_rank-ranks_it->first;
           int high_rank = low_rank+1;
           int low_id = id_from_rank[low_rank];
-          FPtot += deltaFp[low_id];
-          FPlo[high_rank] = FPtot;
-          FNtot += deltaFn[low_id];
-          FNlo[high_rank] = FNtot;
-        }
-        FPtot=0, FNtot=0;
-        for//adjacent lines in an intersection point. (tie-breaking type 2)
-          (int high_rank=ranks_it->second;
-           ranks_it->first < high_rank;
-           high_rank--){
-          int high_id = id_from_rank[high_rank];
-          FPtot += deltaFp[high_id];
-          FPhi[high_rank] = FPtot;
-          FNtot += deltaFn[high_id];
-          FNhi[high_rank] = FNtot;
+          int top_high_rank = ranks_it->second-offset;
+          int top_high_id = id_from_rank[top_high_rank];
+          FPlo_tot += deltaFp[low_id];
+          FPlo[high_rank] = FPlo_tot;
+          FNlo_tot += deltaFn[low_id];
+          FNlo[top_high_rank] = FNlo_tot;
+          FPhi_tot += deltaFp[top_high_id];
+          FPhi[high_rank] = FPhi_tot;
+          FNhi_tot += deltaFn[top_high_id];
+          FNhi[top_high_rank] = FNhi_tot;
         }
         // print_dbl(FPlo, "FPlo");
         // print_dbl(FNlo, "FNlo");
         // print_dbl(FPhi, "FPhi");
         // print_dbl(FNhi, "FNhi");
+        // printf("before update\n");
+        // print_dbl(FP, "FP");
+        // print_dbl(FN, "FN");
+        // print_dbl(M, "M");
         for//adjacent lines in an intersection point. (tie-breaking type 2)
           (int low_rank=ranks_it->first; 
            low_rank<ranks_it->second; 
            low_rank++){
           // (∆FP of top line) - (∆FP of bottom line)
           int high_rank = low_rank+1;
-          int low_id = id_from_rank[low_rank];
-          int high_id = id_from_rank[high_rank];
           double deltaFpDiff = FPhi[high_rank] - FPlo[high_rank];
           double deltaFnDiff = FNhi[high_rank] - FNlo[high_rank];
           FP[high_rank] += deltaFpDiff;
@@ -321,34 +318,53 @@ int lineSearch(
           double minBeforeIntersection = M[high_rank];
           M[high_rank] = min(FP[high_rank], FN[high_rank]);
         }
+        // printf("after update\n");
+        // print_dbl(FP, "FP");
+        // print_dbl(FN, "FN");
+        // print_dbl(M, "M");
         reverse
           (id_from_rank.begin()+ranks_it->first, 
            id_from_rank.begin()+ranks_it->second+1);
-        //print_ids(id_from_rank);
+        // print_ids(id_from_rank);
       }
       total_auc.action(act_ptr, 1.0);
       aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
       aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
       aucAfterStepVec[iteration] = total_auc.value;
       // queue the next actions/intersections.
-      int prev_high_rank = -1;
+      Actions deleted = *act_ptr;
+      //printf("\nbefore erase iteration=%d\n", iteration);
+      //queue.print();
+      queue.actions.erase(act_it);
+      //printf("\nafter erase iteration=%d\n", iteration);
+      //queue.print();
+      int prev_high_rank = 0;
       for//intersection points. (tie-breaking type 1)
-        (auto ranks_it = act_ptr->ranks.begin(); 
-         ranks_it != act_ptr->ranks.end();
+        (auto ranks_it = deleted.ranks.begin(); 
+         ranks_it != deleted.ranks.end();
          ranks_it++){
         int higherRank = ranks_it->second + 1;
         if (higherRank < lineCount) {
             queue.add(stepSize, higherRank);
         }
-        int lowerRank = ranks_it->first - 1;
-        if (lowerRank > prev_high_rank) {
-            queue.add(stepSize, lowerRank);
+        if (ranks_it->first > prev_high_rank) {
+            queue.add(stepSize, ranks_it->first);
         }
         prev_high_rank = ranks_it->second;
       }
-      queue.actions.erase(act_it);
+      //printf("\nafter add iteration=%d\n", iteration);
       //queue.print();
       lastStepSize = stepSize;
+
+      double loopAUM = 0;
+      for (int b = 1; b < lineCount; b++) {
+        double hi_thresh=lines[id_from_rank[b]].thresh(stepSize);
+        double lo_thresh=lines[id_from_rank[b-1]].thresh(stepSize);
+        //printf("b=%d M=%f (%f,%f)\n", b, M[b], lo_thresh, hi_thresh);
+        loopAUM += M[b]*(hi_thresh-lo_thresh);
+      }
+      printf("it=%d step=%f loopAUM=%f aum=%f\n", iteration, stepSize, loopAUM, aum);
+
     }
     return 0;//SUCCESS
 }
