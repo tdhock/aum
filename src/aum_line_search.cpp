@@ -297,14 +297,6 @@ int lineSearch(
           FNhi_tot += deltaFn[top_high_id];
           FNhi[top_high_rank] = FNhi_tot;
         }
-        // print_dbl(FPlo, "FPlo");
-        // print_dbl(FNlo, "FNlo");
-        // print_dbl(FPhi, "FPhi");
-        // print_dbl(FNhi, "FNhi");
-        // printf("before update\n");
-        // print_dbl(FP, "FP");
-        // print_dbl(FN, "FN");
-        // print_dbl(M, "M");
         for//adjacent lines in an intersection point. (tie-breaking type 2)
           (int low_rank=ranks_it->first; 
            low_rank<ranks_it->second; 
@@ -318,14 +310,9 @@ int lineSearch(
           double minBeforeIntersection = M[high_rank];
           M[high_rank] = min(FP[high_rank], FN[high_rank]);
         }
-        // printf("after update\n");
-        // print_dbl(FP, "FP");
-        // print_dbl(FN, "FN");
-        // print_dbl(M, "M");
         reverse
           (id_from_rank.begin()+ranks_it->first, 
            id_from_rank.begin()+ranks_it->second+1);
-        // print_ids(id_from_rank);
       }
       total_auc.action(act_ptr, 1.0);
       aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
@@ -333,11 +320,7 @@ int lineSearch(
       aucAfterStepVec[iteration] = total_auc.value;
       // queue the next actions/intersections.
       Actions deleted = *act_ptr;
-      //printf("\nbefore erase iteration=%d\n", iteration);
-      //queue.print();
       queue.actions.erase(act_it);
-      //printf("\nafter erase iteration=%d\n", iteration);
-      //queue.print();
       int prev_high_rank = 0;
       for//intersection points. (tie-breaking type 1)
         (auto ranks_it = deleted.ranks.begin(); 
@@ -352,19 +335,7 @@ int lineSearch(
         }
         prev_high_rank = ranks_it->second;
       }
-      //printf("\nafter add iteration=%d\n", iteration);
-      //queue.print();
       lastStepSize = stepSize;
-
-      double loopAUM = 0;
-      for (int b = 1; b < lineCount; b++) {
-        double hi_thresh=lines[id_from_rank[b]].thresh(stepSize);
-        double lo_thresh=lines[id_from_rank[b-1]].thresh(stepSize);
-        //printf("b=%d M=%f (%f,%f)\n", b, M[b], lo_thresh, hi_thresh);
-        loopAUM += M[b]*(hi_thresh-lo_thresh);
-      }
-      printf("it=%d step=%f loopAUM=%f aum=%f\n", iteration, stepSize, loopAUM, aum);
-
     }
     return 0;//SUCCESS
 }
