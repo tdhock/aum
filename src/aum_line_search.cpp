@@ -1,5 +1,4 @@
 #include "aum_line_search.h"
-#define EPSILON 1e-6
 using namespace std;
 
 double Line::thresh(double step) const {
@@ -31,6 +30,9 @@ class Actions {
   void insert_pair(int low, int high){
     ranks.insert(pair<int,int>(low, high));
   }
+  void insert_hint_pair(map<int,int>::iterator hint, int low, int high){
+    ranks.insert(hint, pair<int,int>(low, high));
+  }
   void add(int high_rank){
     int low_rank = high_rank-1;
     auto it_after = ranks.lower_bound(high_rank);
@@ -45,12 +47,12 @@ class Actions {
     if(it_after != ranks.end()){
       if(it_after->first == high_rank){
         int new_high = it_after->second;
-        auto it_after_erase = ranks.erase(it_after);
-        insert_pair(low_rank, new_high);
+        auto hint = ranks.erase(it_after);
+        insert_hint_pair(hint, low_rank, new_high);
         return;
       }
     }
-    insert_pair(low_rank, high_rank);
+    insert_hint_pair(it_after, low_rank, high_rank);
   }
 };
 
@@ -256,6 +258,7 @@ int lineSearch(
     }
     aucAtStepVec[0] = total_auc.value;
     total_auc.value = 0;
+    total_auc.aum_slope = 0;
     total_auc.update(1, lineCount, 1.0);
     // AUM at step size 0
     aumVec[0] = aum;
@@ -307,7 +310,6 @@ int lineSearch(
           double deltaFnDiff = FNhi[high_rank] - FNlo[high_rank];
           FP[high_rank] += deltaFpDiff;
           FN[high_rank] += deltaFnDiff;
-          double minBeforeIntersection = M[high_rank];
           M[high_rank] = min(FP[high_rank], FN[high_rank]);
         }
         reverse

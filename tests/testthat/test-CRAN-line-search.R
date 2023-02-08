@@ -109,3 +109,12 @@ test_that("several ties", {
   }
   expect_equal(L$step.size, c(0,2,3,4,6,9,10))
 })
+test_that("2 binary line search ok windows", {
+  bin.diffs <- aum::aum_diffs_binary(c(1,0))
+  bin.line.search <- aum::aum_line_search(bin.diffs, pred.vec=c(-10,10))
+  expected.dt <- rbind(
+    data.table(step.size=0, aum=20, aum.slope.after=-2, auc=0, auc.after=0),
+    data.table(step.size=10, aum=0, aum.slope.after=0, auc=0.5, auc.after=1))
+  expect_equal(bin.line.search$line_search_result, expected.dt)
+})
+  
