@@ -74,7 +74,6 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
     Rcpp::NumericVector intercept = df["intercept"];
     Rcpp::NumericVector slope = df["slope"];
     int lineCount = df.nrow();
-
     // build lines
     std::vector<Line> lines;
     lines.reserve(lineCount);
@@ -82,16 +81,11 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
         Line line = Line { slope[i], intercept[i] };
         lines.push_back(line);
     }
-
-    Rcpp::NumericVector FP(lineCount, 0.0);
-    Rcpp::NumericVector FN(lineCount, 0.0);
-    Rcpp::NumericVector M(lineCount, 0.0);
     Rcpp::NumericVector stepSizeVec(maxIterations, -1.0);
     Rcpp::NumericVector aumVec(maxIterations, -1.0);
     Rcpp::NumericVector aumSlopeAfterStepVec(maxIterations, -100.0);
     Rcpp::NumericVector aucAtStepVec(maxIterations, -1.0);
     Rcpp::NumericVector aucAfterStepVec(maxIterations, -1.0);
-
     int status = lineSearch(
             &lines[0],
             lineCount,
@@ -110,11 +104,10 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
     if(status == ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS){
       Rcpp::stop("slopes should be increasing for equal intercepts");
     }
-
     return Rcpp::DataFrame::create
-      (Rcpp::Named("aum", aumVec), 
+      (Rcpp::Named("step.size", stepSizeVec),
+       Rcpp::Named("aum", aumVec), 
        Rcpp::Named("aum.slope.after", aumSlopeAfterStepVec), 
-       Rcpp::Named("step.size", stepSizeVec),
        Rcpp::Named("auc", aucAtStepVec),
        Rcpp::Named("auc.after", aucAfterStepVec));
 }
