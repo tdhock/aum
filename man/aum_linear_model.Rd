@@ -7,7 +7,8 @@ descent with exact line search.}
 \usage{aum_linear_model(feature.list, 
     diff.list, max.steps = NULL, 
     improvement.thresh = NULL, 
-    maxIterations = nrow(feature.list$subtrain))}
+    maxIterations = nrow(feature.list$subtrain), 
+    initial.weight.fun = NULL)}
 \arguments{
   \item{feature.list}{List with named elements subtrain and optionally validation, each
 should be a scaled feature matrix.}
@@ -21,6 +22,8 @@ improvement in AUM is greater than this number (specify either
 this or \code{max.steps}, not both).}
   \item{maxIterations}{max number of iterations of exact line search, default is number
 of subtrain examples.}
+  \item{initial.weight.fun}{Function for computing initial weights, default NULL means use a
+random standard normal vector.}
 }
 
 \value{Linear model represented as a list of class aum_linear_model with

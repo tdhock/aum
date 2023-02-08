@@ -7,7 +7,7 @@ minimizing AUM.}
 \usage{aum_linear_model_cv(feature.mat, 
     diff.dt, maxIterations = nrow(feature.mat), 
     improvement.thresh = NULL, 
-    n.folds = 3)}
+    n.folds = 3, initial.weight.fun = NULL)}
 \arguments{
   \item{feature.mat}{N x P matrix of features, which will be scaled before gradient descent.}
   \item{diff.dt}{data table of differences in error functions, from
@@ -23,6 +23,7 @@ value which is ten times smaller than the min non-zero absolute
 value of FP and FN diffs in \code{diff.dt}.}
   \item{n.folds}{Number of cross-validation folds to average over to determine the
 best number of steps of gradient descent.}
+  \item{initial.weight.fun}{Function for computing initial weight vector in gradient descent.}
 }
 
 \value{Model trained with best number of iterations, represented as a
