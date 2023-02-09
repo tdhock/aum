@@ -1,10 +1,6 @@
 #include "aum_line_search.h"
 using namespace std;
 
-double Line::thresh(double step) const {
-  return intercept+slope*step;
-}
-
 bool Point::isFinite() const {
     return isfinite(x) && isfinite(y);
 }
@@ -167,22 +163,6 @@ class Queue {
   }
 };
 
-void print_ids(vector<int> &id_vec){
-  printf("ids=");
-  for(auto it=id_vec.begin(); it != id_vec.end(); it++){
-    printf("%d,", *it);
-  }
-  printf("\n");
-}
-  
-void print_dbl(vector<double> &vec, const char *str){
-  printf("%s", str);
-  for(auto it=vec.begin(); it != vec.end(); it++){
-    printf("%f,", *it);
-  }
-  printf("\n");
-}
-  
 int lineSearch(
         const Line *lines,
         int lineCount,
@@ -193,7 +173,9 @@ int lineSearch(
         double *aumVec, 
         double *aumSlopeAfterStepVec,
         double *aucAtStepVec,
-        double *aucAfterStepVec
+        double *aucAfterStepVec,
+        int *intersectionCountVec,
+        int *intervalCountVec
 ) {
     // map from rank (index when sorted by threshold) to id of line
     // (in FP/FN/etc indices).
@@ -242,13 +224,13 @@ int lineSearch(
     TotalAUC total_auc(&FP, &FN, &M, &id_from_rank, lines, lineCount);
     total_auc.value = 0;
     int last_line = 0;
-    double last_thresh = lines[0].thresh(0);
+    double last_thresh = lines[0].intercept;
     for(int line_i=1; line_i<=lineCount; line_i++){
       double thresh;
       if(line_i==lineCount){
         thresh = INFINITY;
       }else{
-        thresh = lines[line_i].thresh(0);
+        thresh = lines[line_i].intercept;
       }
       if(last_thresh < thresh){
         total_auc.value += total_auc.get_auc(last_line, line_i);
@@ -265,6 +247,8 @@ int lineSearch(
     aumSlopeAfterStepVec[0] = total_auc.aum_slope;
     stepSizeVec[0] = 0.0;
     aucAfterStepVec[0] = total_auc.value;
+    intersectionCountVec[0] = 0;
+    intervalCountVec[0] = 0;
     for//iterations/step sizes
       (int iteration = 1; 
        iteration < maxIterations && !queue.actions.empty(); 
@@ -277,11 +261,14 @@ int lineSearch(
       Actions *act_ptr = &act_it->second;
       double more_auc_at_step = total_auc.action(act_ptr, -1.0);
       double auc_after_remove = total_auc.value;
+      intersectionCountVec[iteration] = act_ptr->ranks.size();
+      intervalCountVec[iteration] = 0;
       for//intersection points. (tie-breaking type 1)
         (auto ranks_it = act_ptr->ranks.begin(); 
          ranks_it != act_ptr->ranks.end();
          ranks_it++){
         double FPhi_tot=0, FPlo_tot=0, FNhi_tot=0, FNlo_tot=0;
+        intervalCountVec[iteration] += ranks_it->second-ranks_it->first;
         for//adjacent lines in an intersection point. (tie-breaking type 2)
           (int low_rank=ranks_it->first; 
            low_rank<ranks_it->second; 

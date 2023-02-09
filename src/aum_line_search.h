@@ -47,7 +47,9 @@ int lineSearch(
         double *aumVec,
         double *aumSlopeAfterStepVec,
         double *aucAtStepVec,
-        double *aucAfterStepVec
+        double *aucAfterStepVec,
+        int *intersectionCountVec,
+        int *intervalCountVec
 );
 
 #define ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING 1
