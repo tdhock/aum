@@ -124,3 +124,15 @@ test_that("line search initial auc correct for tie", {
     intersections=0, intervals=0)
   expect_equal(L$line_search_result, expected.row)
 })
+
+data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
+nb.err <- with(neuroblastomaProcessed$errors, data.frame(
+  example=paste0(profile.id, ".", chromosome),
+  min.lambda,
+  max.lambda,
+  fp, fn))
+all.ids <- rownames(neuroblastomaProcessed$feature.mat)
+all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
+current.pred <- rep(0, length(all.ids))
+nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, maxIterations=1000)
+plot(nb.search)

@@ -29,18 +29,20 @@ class Actions {
   void insert_hint_pair(map<int,int>::iterator hint, int low, int high){
     ranks.insert(hint, pair<int,int>(low, high));
   }
-  void add(int high_rank){
+  void add_interval(int high_rank){
     int low_rank = high_rank-1;
     auto it_after = ranks.lower_bound(high_rank);
     if(it_after != ranks.begin()){
       auto it_before = it_after;
       it_before--;
+      printf("before %d %d\n", it_before->first, it_before->second);
       if(it_before->second == low_rank){
         it_before->second = high_rank;
         return;
       }
     }
     if(it_after != ranks.end()){
+      printf("after %d %d\n", it_after->first, it_after->second);
       if(it_after->first == high_rank){
         int new_high = it_after->second;
         auto hint = ranks.erase(it_after);
@@ -135,6 +137,7 @@ class Queue {
   map<double,Actions> actions;
   vector<int> *id_from_rank;
   const Line *lines;
+  int iteration;
   void print(){
     for(auto it=actions.begin(); it != actions.end(); it++){
       printf("step=%f\n", it->first);
@@ -145,7 +148,7 @@ class Queue {
     id_from_rank = id_from_rank_;
     lines = lines_;
   }
-  void add(double prevStepSize, int high_rank){
+  void add_intersection(double prevStepSize, int high_rank){
     int high_id = (*id_from_rank)[high_rank];
     int low_id = (*id_from_rank)[high_rank-1];
     auto intersectionPoint = intersect(lines[low_id], lines[high_id]);
@@ -157,7 +160,8 @@ class Queue {
         actions.insert
           (it, pair<double,Actions>(intersectionPoint.x, Actions(high_rank)));
       }else{
-        it->second.add(high_rank);
+        printf("it=%d step.size=%f add_interval(%d) x=%f y=%f\n", iteration, prevStepSize, high_rank, intersectionPoint.x, intersectionPoint.y);
+        it->second.add_interval(high_rank);
       }
     }
   }
@@ -204,7 +208,7 @@ int lineSearch(
 	     lines[lineIndexHighBeforeIntersect].slope)) {
 	  return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
 	}
-	queue.add(0, lineIndexHighBeforeIntersect);
+	queue.add_intersection(0, lineIndexHighBeforeIntersect);
     }
     double lastStepSize = 0.0;
     double aum = 0.0;
@@ -253,6 +257,7 @@ int lineSearch(
       (int iteration = 1; 
        iteration < maxIterations && !queue.actions.empty(); 
        iteration++){
+      queue.iteration=iteration;
       auto act_it = queue.actions.begin();
       double stepSize = act_it->first;
       aum += total_auc.aum_slope * (stepSize - lastStepSize);
@@ -317,10 +322,10 @@ int lineSearch(
          ranks_it++){
         int higherRank = ranks_it->second + 1;
         if (higherRank < lineCount) {
-            queue.add(stepSize, higherRank);
+            queue.add_intersection(stepSize, higherRank);
         }
         if (ranks_it->first > prev_high_rank) {
-            queue.add(stepSize, ranks_it->first);
+            queue.add_intersection(stepSize, ranks_it->first);
         }
         prev_high_rank = ranks_it->second;
       }
