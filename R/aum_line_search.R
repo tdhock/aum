@@ -60,11 +60,6 @@ aum_line_search <- structure(function
   if(requireNamespace("ggplot2"))plot(nb.diffs)
   nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=c(1,-1))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
-##         aum step.size aucAtStep aucAfterStep
-## 1 0.5180666 0.0000000       0.0          0.0
-## 2 0.2516401 0.1332133       0.5          1.0
-## 3 0.2516401 0.4038271       0.5          0.5
-## 4 0.0000000 0.5296472       1.0          1.5
   aum::aum_line_search(nb.diffs, pred.vec=c(1,-1)-c(1,-1)*0.5)
 
   ## Example 3: all changepoint examples, with linear model.
@@ -102,6 +97,14 @@ plot.aum_line_search <- function
   step.size <- aum <- slope <- intercept <- NULL
   ## Above to suppress CRAN check NOTE.
   aum.df <- data.frame(panel="aum", x$line_search_result)
+  ## TODO add row showing slope at end.
+  auc.segs <- x$line_search_result[, data.table(
+    panel="auc", 
+    min.step.size=step.size,
+    max.step.size=c(step.size[-1],Inf),
+    auc=auc.after)]
+  auc.points <- x$line_search_result[, data.table(
+    panel="auc", step.size, auc)]
   abline.df <- data.frame(panel="threshold", x$line_search_input)
   ggplot2::ggplot()+
     ggplot2::theme_bw()+
@@ -117,6 +120,13 @@ plot.aum_line_search <- function
       step.size, aum),
       size=1,
       data=aum.df)+
+    ggplot2::geom_segment(ggplot2::aes(
+      min.step.size, auc,
+      xend=max.step.size, yend=auc),
+      data=auc.segs)+
+    ggplot2::geom_point(ggplot2::aes(
+      step.size, auc),
+      data=auc.points)+
     ggplot2::facet_grid(panel ~ ., scales="free")+
     ggplot2::geom_abline(ggplot2::aes(
       slope=slope, intercept=intercept),
@@ -190,6 +200,18 @@ aum_line_search_grid <- structure(function
     feature.mat=X.keep,
     weight.vec=weight.vec)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
+
+  ## Example 4: many changepoint examples, optimize predictions.
+  all.ids <- rownames(neuroblastomaProcessed$feature.mat)
+  all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
+  current.pred <- rep(0, length(all.ids))
+  nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, maxIterations=100000)
+  plot(nb.search)
+  library(data.table)
+  all.result <- data.table(nb.all.search$line_search_result)
+  some.result <- all.result[as.integer(seq(1, .N, l=100))]
+  plot(log10(aum) ~ step.size, some.result)
+
   
 })
   
