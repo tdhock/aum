@@ -134,5 +134,43 @@ nb.err <- with(neuroblastomaProcessed$errors, data.frame(
 all.ids <- rownames(neuroblastomaProcessed$feature.mat)
 all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
 current.pred <- rep(0, length(all.ids))
-nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, maxIterations=1000)
+maxIt=423
+nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, maxIterations=maxIt)
+old <- aum:::aumLineSearchOld(nb.search$line_search_input, nb.search$line_search_result$aum[1], maxIt)
+arow <- nrow(old)
+compare.wide <- data.table(new=nb.search$line_search_result[arow], old=old[arow,], grid=nb.search$grid_aum[.N])
+compare.tall <- nc::capture_melt_single(
+  compare.wide,
+  code="new|old",
+  "[.]aum$",
+  value.name="aum"
+)[, diff := grid.aum-aum][]
+compare.tall[, .(code, step.size=grid.step.size, grid.aum, aum, diff)]
 plot(nb.search)
+data.table(nb.search$line_search_input)[, id := seq(0,.N-1)][J(id=c(561,563,565)), on="id"]
+
+some=data.table(nb.search$line_search_input)[, id := seq(0,.N-1)][J(id=560:565), on="id"]
+points.dt <- some[some, .(x.id, i.id, x.intercept, x.slope, i.intercept, i.slope), on=.(id > id), nomatch=0L][, step := (x.intercept-i.intercept)/(i.slope-x.slope)][, thresh := step*x.slope+x.intercept][is.finite(step) & step>0][order(step)]
+ggplot()+
+  geom_abline(aes(
+    slope=slope, intercept=intercept),
+    data=some)+
+  geom_label(aes(
+    0, intercept, label=id),
+    data=some)+
+  geom_point(aes(
+    step, thresh),
+    data=points.dt)+
+  geom_vline(aes(
+    xintercept=step),
+    data=data.frame(step=c(0.010611,0.010801)))
+test_that("line search visits all intersections", {
+  LDF <- aum:::aumLineSearch(some, nrow(points.dt)+1)
+  step.dt <- data.table(
+    computed=LDF$step, 
+    expected=c(0, points.dt$step),
+    x.id=c(NA, points.dt$x.id),
+    i.id=c(NA, points.dt$i.id))
+  step.dt[, expect_equal(computed, expected)]
+})
+
