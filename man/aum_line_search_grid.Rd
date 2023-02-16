@@ -72,12 +72,14 @@ plot(nb.search)
 (bin.diffs <- aum::aum_diffs_binary(c(0,0,0,1,1,1)))
 bin.line.search <- aum::aum_line_search_grid(
   bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
-if(requireNamespace("ggplot2"))plot(bin.line.search)+
+if(require("ggplot2")){
+  plot(bin.line.search)+
     geom_text(aes(
       step.size, Inf, label=sprintf(
         "\%d,\%d", intersections, intervals)),
       vjust=1.1,
       data=data.table(
         panel="threshold", bin.line.search$line_search_result))
+}
 
 }
