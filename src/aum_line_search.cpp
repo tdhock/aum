@@ -14,14 +14,16 @@ Point intersect(Line a, Line b) {
 
 class Intervals {
   public:
-  int high_id;
-  int n_intervals;
-  vector<int> *id_from_rank, *rank_from_id;
-  int get_high_rank(){
-    return (*rank_from_id)[high_id];
+  int high_id, high_rank, low_rank, n_intervals;
+  vector<int> *rank_from_id;
+  Intervals(int high_id_, int n_intervals_, vector<int> *rank_from_id_){
+    high_id = high_id_;
+    n_intervals = n_intervals_;
+    rank_from_id = rank_from_id_;
   }
-  int get_low_rank(){
-    return get_high_rank()-n_intervals;
+  void set_ranks(){
+    high_rank = (*rank_from_id)[high_id];
+    low_rank = high_rank - n_intervals;
   }
 };
 
@@ -40,7 +42,15 @@ class ThreshIntervals {
     int high_id = (*id_from_rank)[high_rank];
     thresh_intervals_map.insert
       (pair<double,Intervals>
-       (thresh, Intervals{high_id,1,id_from_rank,rank_from_id}));
+       (thresh, Intervals(high_id,1,rank_from_id)));
+  }
+  void set_intervals_ranks(){
+    for//intersection points. (tie-breaking type 1)
+      (auto intervals_it = thresh_intervals_map.begin(); 
+       intervals_it != thresh_intervals_map.end();
+       intervals_it++){
+      intervals_it->second.set_ranks();
+    }
   }
   void add_interval(double thresh, int new_high_rank){
     auto it_after_or_same = thresh_intervals_map.lower_bound(thresh);
@@ -52,7 +62,8 @@ class ThreshIntervals {
         if(old_high_rank+1 == new_high_rank){
           it_after_or_same->second.high_id = new_high_id;
         }else if(old_low_rank!=new_high_rank){
-          printf("WARNING: in add_interval, old_low_rank=%d old_high_rank=%d new_high_rank=%d which should never happen!\n", old_low_rank, old_high_rank, new_high_rank);
+          return;
+          printf("WARNING: in add_interval, trying to alter existing/old Intervals (%d,%d) but new_high_rank=%d is not adjacent\n", old_low_rank, old_high_rank, new_high_rank);
         }
         it_after_or_same->second.n_intervals++;
         return;
@@ -61,7 +72,7 @@ class ThreshIntervals {
     thresh_intervals_map.insert
       (it_after_or_same, 
        pair<double,Intervals>
-       (thresh, Intervals{new_high_id,1,id_from_rank,rank_from_id}));
+       (thresh, Intervals(new_high_id,1,rank_from_id)));
   }
 };
 
@@ -146,8 +157,10 @@ class TotalAUC {
       (auto TI_it = TI_ptr->thresh_intervals_map.begin(); 
        TI_it != TI_ptr->thresh_intervals_map.end();
        TI_it++){
-      int high_rank=(*rank_from_id)[TI_it->second.high_id]+1;
-      int low_rank=high_rank-TI_it->second.n_intervals;
+      int low_rank, high_rank;
+      high_rank=TI_it->second.high_rank+1;
+      low_rank=TI_it->second.low_rank+1;
+      //printf("low_rank=%d high_rank=%d sign=%f\n", low_rank, high_rank, sign);
       update(low_rank, high_rank, sign);
       more_auc_at_step += get_auc(low_rank-1, high_rank);
     }
@@ -179,10 +192,11 @@ class Queue {
        (point.x, ThreshIntervals
         (point.y, high_rank, id_from_rank, rank_from_id)));
   }
-  void add_intersection(double prevStepSize, int high_rank){
+  void maybe_add_intersection(double prevStepSize, int high_rank){
     int high_id = (*id_from_rank)[high_rank];
     int low_id = (*id_from_rank)[high_rank-1];
-    Point intersectionPoint = intersect(lines[low_id], lines[high_id]);
+    //printf("maybe_add_intersection high_rank=%d ids %d %d\n", high_rank, low_id, high_id);
+    Point intersectionPoint = intersect(lines[low_id], lines[high_id]);//TODO invalid read.
     // intersection points with infinite values aren't real intersections
     if (intersectionPoint.isFinite() && intersectionPoint.x > prevStepSize) {
       auto it = step_ThreshIntervals_map.lower_bound(intersectionPoint.x);
@@ -237,7 +251,7 @@ int lineSearch(
 	     lines[lineIndexHighBeforeIntersect].slope)) {
 	  return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
 	}
-	queue.add_intersection(0, lineIndexHighBeforeIntersect);
+	queue.maybe_add_intersection(0, lineIndexHighBeforeIntersect);
     }
     double lastStepSize = 0.0;
     double aum = 0.0;
@@ -291,6 +305,7 @@ int lineSearch(
       stepSizeVec[iteration] = stepSize;
       aumVec[iteration] = aum;
       ThreshIntervals *TI_ptr = &TI_it->second;
+      TI_ptr->set_intervals_ranks();
       double more_auc_at_step = total_auc.action(TI_ptr, -1.0);
       double auc_after_remove = total_auc.value;
       intersectionCountVec[iteration] = TI_ptr->thresh_intervals_map.size();
@@ -301,13 +316,13 @@ int lineSearch(
          intervals_it++){
         double FPhi_tot=0, FPlo_tot=0, FNhi_tot=0, FNlo_tot=0;
         intervalCountVec[iteration] += intervals_it->second.n_intervals;
-        int lowest_rank = intervals_it->second.get_low_rank();
-        int highest_rank = intervals_it->second.get_high_rank();
+        int lowest_rank = intervals_it->second.low_rank;
+        int highest_rank = intervals_it->second.high_rank;
         for//adjacent lines in an intersection point. (tie-breaking type 2)
           (int low_rank=lowest_rank; 
            low_rank<highest_rank; 
            low_rank++){
-          int offset = low_rank-intervals_it->first;
+          int offset = low_rank-lowest_rank;
           int high_rank = low_rank+1;
           int low_id = id_from_rank[low_rank];
           int top_high_rank = highest_rank-offset;
@@ -353,14 +368,16 @@ int lineSearch(
         (auto intervals_it = deleted.thresh_intervals_map.begin(); 
          intervals_it != deleted.thresh_intervals_map.end();
          intervals_it++){
-        int higherRank = intervals_it->second + 1;
+        int highest_rank = intervals_it->second.high_rank;
+        int higherRank = highest_rank + 1;
         if (higherRank < lineCount) {
-            queue.add_intersection(stepSize, higherRank);
+            queue.maybe_add_intersection(stepSize, higherRank);
         }
-        if (intervals_it->first > prev_high_rank) {
-            queue.add_intersection(stepSize, intervals_it->first);
+        int lowest_rank = intervals_it->second.low_rank;
+        if (lowest_rank > prev_high_rank) {
+            queue.maybe_add_intersection(stepSize, lowest_rank);
         }
-        prev_high_rank = intervals_it->second;
+        prev_high_rank = highest_rank;
       }
       lastStepSize = stepSize;
     }

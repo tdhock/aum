@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <set>
 #include <cmath>
 
 class Line {

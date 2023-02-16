@@ -205,38 +205,8 @@ aum_line_search_grid <- structure(function
   all.ids <- rownames(neuroblastomaProcessed$feature.mat)
   all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
   current.pred <- rep(0, length(all.ids))
-  nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred, maxIterations=1000)
-  ## it=411 step.size=0.010611 add_interval(563) x=0.010801 y=-0.794862
-  ## after 563 564
+  nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred)
   plot(nb.search)
-  
-  
-  ex4.correct <- data.table::fread("~/R/aum-ex4-correct.csv")
-  compare.wide <- data.table(
-    buggy=nb.search$line_search_result[
-    , names(ex4.correct), with=FALSE],
-    correct=ex4.correct[
-      1:nrow(nb.search$line_search_result)
-    ])[, iteration := 1:.N]
-  compare.tall <- nc::capture_melt_multiple(
-    compare.wide,
-    column="buggy|correct",
-    "[.]",
-    variable="step.size|aum"
-  )[, diff := correct-buggy][]
-  ## 422      aum 168.4111 168.4111 -3.410605e-13
-  ## 423      aum 168.4057 168.4058  4.847524e-05
-  nb.search$line_search_result[422:423, .(step.size, aum, intersections, intervals)]
-  ##     step.size      aum intersections intervals
-  ##         <num>    <num>         <int>     <int>
-  ## 1: 0.01080130 168.4111             1         2
-  ## 2: 0.01082554 168.4057             1         1
-  nb.search$line_search_result[1:423, table(intervals)]
-  ## this is the first one with more than one interval.
-  ## intervals
-  ##   0   1   2 
-  ##   1 421   1 
-  ex4.correct[420:425]
 
 })
   
