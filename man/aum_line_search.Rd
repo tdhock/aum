@@ -57,6 +57,28 @@ nb.weight.search <- aum::aum_line_search(
   maxIterations = 200)
 if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
+## Alternate viz with x=iteration instead of step size.
+nb.weight.full <- aum::aum_line_search(
+  nb.diffs,
+  feature.mat=X.keep,
+  weight.vec=weight.vec, 
+  maxIterations = 1000)
+weight.result.tall <- suppressWarnings(melt(
+  nb.weight.full$line_search_result[, iteration:=1:.N][, .(
+    iteration, auc, q.size,
+    log10.step.size=log10(step.size),
+    log10.aum=log10(aum))],
+  id.vars="iteration"))
+if(require(ggplot2)){
+  ggplot()+
+    geom_point(aes(
+      iteration, value),
+      shape=1,
+      data=weight.result.tall)+
+    facet_grid(variable ~ ., scales="free")+
+    scale_y_continuous("")
+}
+
 ## Example 4: many changepoint examples, optimize predictions.
 all.ids <- rownames(neuroblastomaProcessed$feature.mat)
 all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
@@ -76,8 +98,7 @@ if(require(ggplot2)){
       shape=1,
       data=some.tall)+
     facet_grid(variable ~ ., scales="free")+
-    theme_bw()+
-    theme(panel.spacing=grid::unit(0,"lines"))
+    theme_bw()
 }
 
 }

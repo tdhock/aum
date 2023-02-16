@@ -77,6 +77,28 @@ aum_line_search <- structure(function
     maxIterations = 200)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
+  ## Alternate viz with x=iteration instead of step size.
+  nb.weight.full <- aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec, 
+    maxIterations = 1000)
+  weight.result.tall <- suppressWarnings(melt(
+    nb.weight.full$line_search_result[, iteration:=1:.N][, .(
+      iteration, auc, q.size,
+      log10.step.size=log10(step.size),
+      log10.aum=log10(aum))],
+    id.vars="iteration"))
+  if(require(ggplot2)){
+    ggplot()+
+      geom_point(aes(
+        iteration, value),
+        shape=1,
+        data=weight.result.tall)+
+      facet_grid(variable ~ ., scales="free")+
+      scale_y_continuous("")
+  }
+
   ## Example 4: many changepoint examples, optimize predictions.
   all.ids <- rownames(neuroblastomaProcessed$feature.mat)
   all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
@@ -96,8 +118,7 @@ aum_line_search <- structure(function
         shape=1,
         data=some.tall)+
       facet_grid(variable ~ ., scales="free")+
-      theme_bw()+
-      theme(panel.spacing=grid::unit(0,"lines"))
+      theme_bw()
   }
   
 })
@@ -126,16 +147,27 @@ plot.aum_line_search <- function
     min.step.size=step.size,
     max.step.size=c(step.size[-1],Inf),
     auc=auc.after)]
-  auc.points <- x$line_search_result[, data.table(
-    panel="auc", step.size, auc)]
+  all.points <- suppressWarnings(melt(
+    x$line_search_result,
+    measure.vars=c("auc","intervals","intersections","q.size"),
+    variable.name="panel"))
   abline.df <- data.frame(panel="threshold", x$line_search_input)
+  hline.df <- data.frame(panel="q.size", n.data=nrow(x$line_search_input))
   ggplot2::ggplot()+
     ggplot2::theme_bw()+
-    ggplot2::theme(panel.spacing=grid::unit(0,"lines"))+
     ggplot2::geom_vline(ggplot2::aes(
       xintercept=step.size),
       color="grey",
       data=x$line_search_result)+
+    ggplot2::geom_hline(ggplot2::aes(
+      yintercept=n.data),
+      data=hline.df)+
+    ggplot2::geom_text(ggplot2::aes(
+      -Inf, n.data, label=sprintf(
+        "N=%d", n.data)),
+      hjust=0,
+      vjust=1.1,
+      data=hline.df)+
     ggplot2::geom_line(ggplot2::aes(
       step.size, aum),
       size=1,
@@ -143,6 +175,7 @@ plot.aum_line_search <- function
     ggplot2::geom_segment(ggplot2::aes(
       min.step.size, auc,
       xend=max.step.size, yend=auc),
+      size=1,
       data=auc.segs)+
     ggplot2::geom_segment(ggplot2::aes(
       step.size, aum,
@@ -151,9 +184,9 @@ plot.aum_line_search <- function
       size=1,
       data=last.seg)+
     ggplot2::geom_point(ggplot2::aes(
-      step.size, auc),
+      step.size, value),
       shape=1,
-      data=auc.points)+
+      data=all.points)+
     ggplot2::facet_grid(panel ~ ., scales="free")+
     ggplot2::geom_abline(ggplot2::aes(
       slope=slope, intercept=intercept),
@@ -161,7 +194,8 @@ plot.aum_line_search <- function
     ggplot2::geom_point(ggplot2::aes(
       0, intercept),
       data=abline.df)+
-    ggplot2::scale_y_continuous("")
+    ggplot2::scale_y_continuous("")+
+    ggplot2::scale_x_continuous("Step size")
 ### ggplot.
 }
 
@@ -239,9 +273,8 @@ aum_line_search_grid <- structure(function
   ## Example 5: counting intersections and intervals at each
   ## iteration/step size, when there are ties.
   (bin.diffs <- aum::aum_diffs_binary(c(0,0,0,1,1,1)))
-  bin.line.search <- aum::aum_line_search(bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
-  if(requireNamespace("ggplot2"))
-    plot(bin.line.search)+
+  bin.line.search <- aum::aum_line_search_grid(bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
+  if(requireNamespace("ggplot2"))plot(bin.line.search)+
       geom_text(aes(
         step.size, Inf, label=sprintf(
           "%d,%d", intersections, intervals)),
