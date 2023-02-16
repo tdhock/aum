@@ -34,24 +34,10 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// aumLineSearchOld
-Rcpp::DataFrame aumLineSearchOld(const Rcpp::DataFrame df, const double initialAum, int maxIterations);
-RcppExport SEXP _aum_aumLineSearchOld(SEXP dfSEXP, SEXP initialAumSEXP, SEXP maxIterationsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type df(dfSEXP);
-    Rcpp::traits::input_parameter< const double >::type initialAum(initialAumSEXP);
-    Rcpp::traits::input_parameter< int >::type maxIterations(maxIterationsSEXP);
-    rcpp_result_gen = Rcpp::wrap(aumLineSearchOld(df, initialAum, maxIterations));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_aum_aum_sort_interface", (DL_FUNC) &_aum_aum_sort_interface, 2},
     {"_aum_aumLineSearch", (DL_FUNC) &_aum_aumLineSearch, 2},
-    {"_aum_aumLineSearchOld", (DL_FUNC) &_aum_aumLineSearchOld, 3},
     {NULL, NULL, 0}
 };
 

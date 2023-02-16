@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <vector>
 #include <map>
-#include <set>
 #include <cmath>
 
 class Line {
@@ -25,25 +24,13 @@ struct Point {
 
 Point intersect(Line a, Line b);
 
-/**
- * Line Search
- * @param lines lines array
- * @param lineCount size of the lines array
- * @param deltaFp input FP, assumed length == lineCount
- * @param deltaFn input FN, assumed length == lineCount
- * @param FP destination for FP, assumed length == lineCount
- * @param FN destination for FN, assumed length == lineCount
- * @param M destination for M, assumed length == lineCount
- * @param maxIterations max iterations of the algorithm
- * @param stepSizeVec output vector for the step size of the AUM
- * @param aumVec output vector for the AUM values at the corresponding step sizes
- */
 int lineSearch(
         const Line *lines,
         int lineCount,
         const double *deltaFp,
         const double *deltaFn,
         int maxIterations,
+        //inputs above, size of outputs below = maxIterations.
         double *stepSizeVec,
         double *aumVec,
         double *aumSlopeAfterStepVec,

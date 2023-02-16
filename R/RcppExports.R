@@ -9,7 +9,3 @@ aumLineSearch <- function(df, maxIterations) {
     .Call(`_aum_aumLineSearch`, df, maxIterations)
 }
 
-aumLineSearchOld <- function(df, initialAum, maxIterations) {
-    .Call(`_aum_aumLineSearchOld`, df, initialAum, maxIterations)
-}
-

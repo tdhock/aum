@@ -58,4 +58,11 @@ nb.weight.search <- aum::aum_line_search_grid(
   weight.vec=weight.vec)
 if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
+## Example 4: many changepoint examples, optimize predictions.
+all.ids <- rownames(neuroblastomaProcessed$feature.mat)
+all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
+current.pred <- rep(0, length(all.ids))
+nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred)
+plot(nb.search)
+
 }

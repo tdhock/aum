@@ -14,6 +14,7 @@ test_that("error when slope same", {
     aum:::aumLineSearch(slope.same, maxIterations=10)
   }, "slopes should be increasing for equal intercepts")
 })
+
 test_that("contrived three way tie computed ok", {
   three.intersect <- data.frame(
     intercept=c(-1,0,1), 
@@ -57,8 +58,10 @@ test_that("join to three way tie computed ok", {
     slope=c(1,-1,0,-1),
     fp.diff=c(0.5,0,0.5,0), 
     fn.diff=c(0,-0.5,0,-0.5))
-  L <- aum:::aumLineSearch(four.intersect, maxIterations = 3)
-  expect_equal(L$step.size, c(0,1,3))
+  expected.step <- c(0,1,3)
+  L <- aum:::aumLineSearch(
+    four.intersect, maxIterations = length(expected.step))
+  expect_equal(L$step.size, expected.step)
 })
 
 test_that("join to three way tie then another", {
@@ -67,7 +70,9 @@ test_that("join to three way tie then another", {
     slope=c(1,0,0,-1),
     fp.diff=c(0.5,0,0.5,0), 
     fn.diff=c(0,-0.5,0,-0.5))
-  L <- aum:::aumLineSearch(four.intersect, maxIterations = 4)
+  expected.step <- c(0,2,3,4)
+  L <- aum:::aumLineSearch(
+    four.intersect, maxIterations = length(expected.step))
   if(require(ggplot2)){
     ggplot()+
       theme_bw()+
@@ -80,7 +85,7 @@ test_that("join to three way tie then another", {
         data=L)+
       coord_cartesian(xlim=c(0, 5), ylim=c(-3,3))
   }
-  expect_equal(L$step.size, c(0,2,3,4))
+  expect_equal(L$step.size, expected.step)
 })
 
 test_that("several ties", {
@@ -89,7 +94,9 @@ test_that("several ties", {
     slope=c(1,0,0,-1,1,-1),
     fp.diff=c(0.5,0,0.25,0,0.25,0), 
     fn.diff=c(0,-0.25,0,-0.25,0,-0.5))
-  (L <- aum:::aumLineSearch(several.intersect, maxIterations = 7))
+  expected.step <- c(0,2,3,4,6,9,10)
+  (L <- aum:::aumLineSearch(
+    several.intersect, maxIterations = length(expected.step)))
   if(require(ggplot2)){
     ggplot()+
       theme_bw()+
@@ -102,8 +109,9 @@ test_that("several ties", {
         data=L)+
       coord_cartesian(xlim=c(0, 10), ylim=c(-3,9))
   }
-  expect_equal(L$step.size, c(0,2,3,4,6,9,10))
+  expect_equal(L$step.size, expected.step)
 })
+
 test_that("2 binary line search ok windows", {
   bin.diffs <- aum::aum_diffs_binary(c(1,0))
   bin.line.search <- aum::aum_line_search(bin.diffs, pred.vec=c(-10,10))
@@ -116,6 +124,7 @@ test_that("2 binary line search ok windows", {
       auc=0.5, auc.after=1, intersections=1, intervals=1))
   expect_equal(bin.line.search$line_search_result, expected.dt)
 })
+
 test_that("line search initial auc correct for tie", {
   bin.diffs <- aum::aum_diffs_binary(c(0,1))
   L <- aum::aum_line_search(bin.diffs, pred.vec=c(0,0))
@@ -147,7 +156,7 @@ test_that("complex real data example", {
   ][, step := (x.intercept-i.intercept)/(i.slope-x.slope)
     ][, thresh := step*x.slope+x.intercept
       ][is.finite(step) & step>0][order(step)]
-  if(interactive()){
+  if(require(ggplot2)){
     plot(nb.search)
     ggplot()+
       geom_abline(aes(

@@ -63,7 +63,7 @@ class ThreshIntervals {
           it_after_or_same->second.high_id = new_high_id;
         }else if(old_low_rank!=new_high_rank){
           return;
-          printf("WARNING: in add_interval, trying to alter existing/old Intervals (%d,%d) but new_high_rank=%d is not adjacent\n", old_low_rank, old_high_rank, new_high_rank);
+          //printf("WARNING: in add_interval, trying to alter existing/old Intervals (%d,%d) but new_high_rank=%d is not adjacent, this only happens when same as existing, no need to add again.\n", old_low_rank, old_high_rank, new_high_rank);
         }
         it_after_or_same->second.n_intervals++;
         return;
@@ -78,21 +78,25 @@ class ThreshIntervals {
 
 class TotalAUC {
   public:
-  vector<double> *FPR, *FNR, *M;
+  vector<double> *FP, *FN, *M;
   vector<int> *id_from_rank, *rank_from_id;
   const Line *lines;
-  double value, aum_slope;
+  double value, aum_slope, maxFP, maxFN;
   int lineCount;
   TotalAUC
-  (vector<double> *FPR_, 
-   vector<double> *FNR_, 
+  (vector<double> *FP_, 
+   double maxFP_,
+   vector<double> *FN_, 
+   double maxFN_,
    vector<double> *M_, 
    vector<int> *id_from_rank_,
    vector<int> *rank_from_id_,
    const Line *lines_,
    int lineCount_){
-    FPR = FPR_;
-    FNR = FNR_;
+    FP = FP_;
+    maxFP = maxFP_;
+    FN = FN_;
+    maxFN = maxFN_;
     M = M_;
     id_from_rank = id_from_rank_;
     rank_from_id = rank_from_id_;
@@ -113,11 +117,11 @@ class TotalAUC {
   }
   double tpr(int rank){
     if(rank==lineCount)return 1;
-    return 1-(*FNR)[rank];
+    return 1-(*FN)[rank]/maxFN;
   }
   double fpr(int rank){
     if(rank==lineCount)return 1;
-    return (*FPR)[rank];
+    return (*FP)[rank]/maxFP;
   }
   double m(int rank){
     if(rank==lineCount)return 0;
@@ -160,7 +164,6 @@ class TotalAUC {
       int low_rank, high_rank;
       high_rank=TI_it->second.high_rank+1;
       low_rank=TI_it->second.low_rank+1;
-      //printf("low_rank=%d high_rank=%d sign=%f\n", low_rank, high_rank, sign);
       update(low_rank, high_rank, sign);
       more_auc_at_step += get_auc(low_rank-1, high_rank);
     }
@@ -173,7 +176,6 @@ class Queue {
   map<double,ThreshIntervals> step_ThreshIntervals_map;
   vector<int> *id_from_rank, *rank_from_id;
   const Line *lines;
-  int iteration;
   Queue
   (vector<int> *id_from_rank_, 
    vector<int> *rank_from_id_,
@@ -195,8 +197,7 @@ class Queue {
   void maybe_add_intersection(double prevStepSize, int high_rank){
     int high_id = (*id_from_rank)[high_rank];
     int low_id = (*id_from_rank)[high_rank-1];
-    //printf("maybe_add_intersection high_rank=%d ids %d %d\n", high_rank, low_id, high_id);
-    Point intersectionPoint = intersect(lines[low_id], lines[high_id]);//TODO invalid read.
+    Point intersectionPoint = intersect(lines[low_id], lines[high_id]);
     // intersection points with infinite values aren't real intersections
     if (intersectionPoint.isFinite() && intersectionPoint.x > prevStepSize) {
       auto it = step_ThreshIntervals_map.lower_bound(intersectionPoint.x);
@@ -211,175 +212,182 @@ class Queue {
   }
 };
 
-int lineSearch(
-        const Line *lines,
-        int lineCount,
-        const double *deltaFp,
-        const double *deltaFn,
-        int maxIterations,
-        double *stepSizeVec,
-        double *aumVec, 
-        double *aumSlopeAfterStepVec,
-        double *aucAtStepVec,
-        double *aucAfterStepVec,
-        int *intersectionCountVec,
-        int *intervalCountVec
-) {
-    // map from rank (index when sorted by threshold) to id of line
-    // (in FP/FN/etc indices).
-    vector<int> id_from_rank(lineCount), rank_from_id(lineCount);
-    // map from line number (id) to rank (index in sorted vector) of line.
-    vector<double> FP(lineCount), FPlo(lineCount), FPhi(lineCount);
-    vector<double> FN(lineCount), FNlo(lineCount), FNhi(lineCount);
-    vector<double> M(lineCount);
-    for (int i = 0; i < lineCount; i++) {
-        id_from_rank[i] = rank_from_id[i] = i;
+int lineSearch
+(const Line *lines,
+ int lineCount,
+ const double *deltaFp,
+ const double *deltaFn,
+ int maxIterations,
+ double *stepSizeVec,
+ double *aumVec, 
+ double *aumSlopeAfterStepVec,
+ double *aucAtStepVec,
+ double *aucAfterStepVec,
+ int *intersectionCountVec,
+ int *intervalCountVec
+ ) {
+  // map from rank (index when sorted by threshold) to id of line
+  // (in FP/FN/etc indices).
+  vector<int> id_from_rank(lineCount), rank_from_id(lineCount);
+  // map from line number (id) to rank (index in sorted vector) of line.
+  vector<double> FP(lineCount), FPlo(lineCount), FPhi(lineCount);
+  vector<double> FN(lineCount), FNlo(lineCount), FNhi(lineCount);
+  vector<double> M(lineCount);
+  for (int i = 0; i < lineCount; i++) {
+    id_from_rank[i] = rank_from_id[i] = i;
+  }
+  Queue queue(&id_from_rank, &rank_from_id, lines);
+  // start by queueing intersections of every line and the line after it
+  for
+    (int lineIndexLowBeforeIntersect = 0;
+     lineIndexLowBeforeIntersect < lineCount - 1;
+     lineIndexLowBeforeIntersect++) {
+    int lineIndexHighBeforeIntersect = lineIndexLowBeforeIntersect + 1;
+    if
+      (lines[lineIndexLowBeforeIntersect].intercept >
+       lines[lineIndexHighBeforeIntersect].intercept) {
+      return ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING;
     }
-    Queue queue(&id_from_rank, &rank_from_id, lines);
-    // start by queueing intersections of every line and the line after it
-    for (int lineIndexLowBeforeIntersect = 0;
-	 lineIndexLowBeforeIntersect < lineCount - 1;
-	 lineIndexLowBeforeIntersect++) {
-        int lineIndexHighBeforeIntersect = lineIndexLowBeforeIntersect + 1;
-	if (lines[lineIndexLowBeforeIntersect].intercept >
-	    lines[lineIndexHighBeforeIntersect].intercept) {
-	  return ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING;
-	}
-	if ((lines[lineIndexLowBeforeIntersect].intercept ==
-	     lines[lineIndexHighBeforeIntersect].intercept) &&
-	    (lines[lineIndexLowBeforeIntersect].slope >=
-	     lines[lineIndexHighBeforeIntersect].slope)) {
-	  return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
-	}
-	queue.maybe_add_intersection(0, lineIndexHighBeforeIntersect);
+    if
+      ((lines[lineIndexLowBeforeIntersect].intercept ==
+        lines[lineIndexHighBeforeIntersect].intercept) &&
+       (lines[lineIndexLowBeforeIntersect].slope >=
+        lines[lineIndexHighBeforeIntersect].slope)) {
+      return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
     }
-    double lastStepSize = 0.0;
-    double aum = 0.0;
-    // build FP, FN, & M, and compute initial aum slope.
-    FP[0]=0;
-    FN[0]=1;
-    FN[lineCount - 1] = -deltaFn[lineCount - 1];
-    for (int b = lineCount - 2; b >= 1; b--) {
-        FN[b] = FN[b + 1] - deltaFn[b];
+    queue.maybe_add_intersection(0, lineIndexHighBeforeIntersect);
+  }
+  double lastStepSize = 0.0;
+  double aum = 0.0;
+  // build FP, FN, & M, and compute initial aum slope.
+  FN[0]=1;
+  FN[lineCount - 1] = -deltaFn[lineCount - 1];
+  for (int b = lineCount - 2; b >= 1; b--) {
+    FN[b] = FN[b + 1] - deltaFn[b];
+  }
+  FP[0]=0;
+  for (int b = 1; b < lineCount; b++) {
+    FP[b] = FP[b - 1] + deltaFp[b - 1];
+    M[b] = min(FP[b], FN[b]);
+    aum += M[b]*(lines[b].intercept-lines[b-1].intercept);
+  }
+  double maxFP=0, maxFN=0;
+  for(int b=0; b<lineCount; b++){
+    maxFP += deltaFp[b];
+    maxFN -= deltaFn[b];
+  }
+  // initialize AUC.
+  TotalAUC total_auc
+    (&FP, maxFP, &FN, maxFN, 
+     &M, &id_from_rank, &rank_from_id, lines, lineCount);
+  int last_line = 0;
+  double last_thresh = lines[0].intercept;
+  for(int line_i=1; line_i<=lineCount; line_i++){
+    double thresh;
+    if(line_i==lineCount){
+      thresh = INFINITY;
+    }else{
+      thresh = lines[line_i].intercept;
     }
-    for (int b = 1; b < lineCount; b++) {
-        FP[b] = FP[b - 1] + deltaFp[b - 1];
-        M[b] = min(FP[b], FN[b]);
-        aum += M[b]*(lines[b].intercept-lines[b-1].intercept);
+    if(last_thresh < thresh){
+      total_auc.value += total_auc.get_auc(last_line, line_i);
+      last_line = line_i;
+      last_thresh = thresh;
     }
-    // initialize AUC.
-    TotalAUC total_auc
-      (&FP, &FN, &M, &id_from_rank, &rank_from_id, lines, lineCount);
-    int last_line = 0;
-    double last_thresh = lines[0].intercept;
-    for(int line_i=1; line_i<=lineCount; line_i++){
-      double thresh;
-      if(line_i==lineCount){
-        thresh = INFINITY;
-      }else{
-        thresh = lines[line_i].intercept;
+  }
+  aucAtStepVec[0] = total_auc.value;
+  total_auc.zero_update_all();
+  // AUM at step size 0
+  aumVec[0] = aum;
+  aumSlopeAfterStepVec[0] = total_auc.aum_slope;
+  stepSizeVec[0] = 0.0;
+  aucAfterStepVec[0] = total_auc.value;
+  intersectionCountVec[0] = 0;
+  intervalCountVec[0] = 0;
+  for//iterations/step sizes
+    (int iteration = 1; 
+     iteration < maxIterations && !queue.step_ThreshIntervals_map.empty(); 
+     iteration++){
+    auto TI_it = queue.step_ThreshIntervals_map.begin();
+    double stepSize = TI_it->first;
+    aum += total_auc.aum_slope * (stepSize - lastStepSize);
+    stepSizeVec[iteration] = stepSize;
+    aumVec[iteration] = aum;
+    ThreshIntervals TI = TI_it->second;
+    TI.set_intervals_ranks();
+    double more_auc_at_step = total_auc.action(&TI, -1.0);
+    double auc_after_remove = total_auc.value;
+    intersectionCountVec[iteration] = TI.thresh_intervals_map.size();
+    intervalCountVec[iteration] = 0;
+    for//intersection points. (tie-breaking type 1)
+      (auto intervals_it = TI.thresh_intervals_map.begin(); 
+       intervals_it != TI.thresh_intervals_map.end();
+       intervals_it++){
+      double FPhi_tot=0, FPlo_tot=0, FNhi_tot=0, FNlo_tot=0;
+      intervalCountVec[iteration] += intervals_it->second.n_intervals;
+      int lowest_rank = intervals_it->second.low_rank;
+      int highest_rank = intervals_it->second.high_rank;
+      for//adjacent lines in an intersection point. (tie-breaking type 2)
+        (int low_rank=lowest_rank; 
+         low_rank<highest_rank; 
+         low_rank++){
+        int offset = low_rank-lowest_rank;
+        int high_rank = low_rank+1;
+        int low_id = id_from_rank[low_rank];
+        int top_high_rank = highest_rank-offset;
+        int top_high_id = id_from_rank[top_high_rank];
+        FPlo_tot += deltaFp[low_id];
+        FPlo[high_rank] = FPlo_tot;
+        FNlo_tot += deltaFn[low_id];
+        FNlo[top_high_rank] = FNlo_tot;
+        FPhi_tot += deltaFp[top_high_id];
+        FPhi[high_rank] = FPhi_tot;
+        FNhi_tot += deltaFn[top_high_id];
+        FNhi[top_high_rank] = FNhi_tot;
       }
-      if(last_thresh < thresh){
-        total_auc.value += total_auc.get_auc(last_line, line_i);
-        last_line = line_i;
-        last_thresh = thresh;
+      for//adjacent lines in an intersection point. (tie-breaking type 2)
+        (int low_rank=lowest_rank; 
+         low_rank<highest_rank; 
+         low_rank++){
+        // (∆FP of top line) - (∆FP of bottom line)
+        int high_rank = low_rank+1;
+        double deltaFpDiff = FPhi[high_rank] - FPlo[high_rank];
+        double deltaFnDiff = FNhi[high_rank] - FNlo[high_rank];
+        FP[high_rank] += deltaFpDiff;
+        FN[high_rank] += deltaFnDiff;
+        M[high_rank] = min(FP[high_rank], FN[high_rank]);
+      }
+      reverse
+        (id_from_rank.begin()+lowest_rank, 
+         id_from_rank.begin()+highest_rank+1);
+      for(int rank = lowest_rank; rank <= highest_rank; rank++){
+        int id = id_from_rank[rank];
+        rank_from_id[id] = rank;
       }
     }
-    aucAtStepVec[0] = total_auc.value;
-    total_auc.zero_update_all();
-    // AUM at step size 0
-    aumVec[0] = aum;
-    aumSlopeAfterStepVec[0] = total_auc.aum_slope;
-    stepSizeVec[0] = 0.0;
-    aucAfterStepVec[0] = total_auc.value;
-    intersectionCountVec[0] = 0;
-    intervalCountVec[0] = 0;
-    for//iterations/step sizes
-      (int iteration = 1; 
-       iteration < maxIterations && !queue.step_ThreshIntervals_map.empty(); 
-       iteration++){
-      queue.iteration=iteration;
-      auto TI_it = queue.step_ThreshIntervals_map.begin();
-      double stepSize = TI_it->first;
-      aum += total_auc.aum_slope * (stepSize - lastStepSize);
-      stepSizeVec[iteration] = stepSize;
-      aumVec[iteration] = aum;
-      ThreshIntervals *TI_ptr = &TI_it->second;
-      TI_ptr->set_intervals_ranks();
-      double more_auc_at_step = total_auc.action(TI_ptr, -1.0);
-      double auc_after_remove = total_auc.value;
-      intersectionCountVec[iteration] = TI_ptr->thresh_intervals_map.size();
-      intervalCountVec[iteration] = 0;
-      for//intersection points. (tie-breaking type 1)
-        (auto intervals_it = TI_ptr->thresh_intervals_map.begin(); 
-         intervals_it != TI_ptr->thresh_intervals_map.end();
-         intervals_it++){
-        double FPhi_tot=0, FPlo_tot=0, FNhi_tot=0, FNlo_tot=0;
-        intervalCountVec[iteration] += intervals_it->second.n_intervals;
-        int lowest_rank = intervals_it->second.low_rank;
-        int highest_rank = intervals_it->second.high_rank;
-        for//adjacent lines in an intersection point. (tie-breaking type 2)
-          (int low_rank=lowest_rank; 
-           low_rank<highest_rank; 
-           low_rank++){
-          int offset = low_rank-lowest_rank;
-          int high_rank = low_rank+1;
-          int low_id = id_from_rank[low_rank];
-          int top_high_rank = highest_rank-offset;
-          int top_high_id = id_from_rank[top_high_rank];
-          FPlo_tot += deltaFp[low_id];
-          FPlo[high_rank] = FPlo_tot;
-          FNlo_tot += deltaFn[low_id];
-          FNlo[top_high_rank] = FNlo_tot;
-          FPhi_tot += deltaFp[top_high_id];
-          FPhi[high_rank] = FPhi_tot;
-          FNhi_tot += deltaFn[top_high_id];
-          FNhi[top_high_rank] = FNhi_tot;
-        }
-        for//adjacent lines in an intersection point. (tie-breaking type 2)
-          (int low_rank=lowest_rank; 
-           low_rank<highest_rank; 
-           low_rank++){
-          // (∆FP of top line) - (∆FP of bottom line)
-          int high_rank = low_rank+1;
-          double deltaFpDiff = FPhi[high_rank] - FPlo[high_rank];
-          double deltaFnDiff = FNhi[high_rank] - FNlo[high_rank];
-          FP[high_rank] += deltaFpDiff;
-          FN[high_rank] += deltaFnDiff;
-          M[high_rank] = min(FP[high_rank], FN[high_rank]);
-        }
-        reverse
-          (id_from_rank.begin()+lowest_rank, 
-           id_from_rank.begin()+highest_rank+1);
-        for(int rank = lowest_rank; rank <= highest_rank; rank++){
-          int id = id_from_rank[rank];
-          rank_from_id[id] = rank;
-        }
+    total_auc.action(&TI, 1.0);
+    aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
+    aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
+    aucAfterStepVec[iteration] = total_auc.value;
+    // queue the next actions/intersections.
+    queue.step_ThreshIntervals_map.erase(TI_it);
+    int prev_high_rank = 0;
+    for//intersection points. (tie-breaking type 1)
+      (auto intervals_it = TI.thresh_intervals_map.begin(); 
+       intervals_it != TI.thresh_intervals_map.end();
+       intervals_it++){
+      int highest_rank = intervals_it->second.high_rank;
+      int higherRank = highest_rank + 1;
+      if (higherRank < lineCount) {
+        queue.maybe_add_intersection(stepSize, higherRank);
       }
-      total_auc.action(TI_ptr, 1.0);
-      aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
-      aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
-      aucAfterStepVec[iteration] = total_auc.value;
-      // queue the next actions/intersections.
-      ThreshIntervals deleted = *TI_ptr;
-      queue.step_ThreshIntervals_map.erase(TI_it);
-      int prev_high_rank = 0;
-      for//intersection points. (tie-breaking type 1)
-        (auto intervals_it = deleted.thresh_intervals_map.begin(); 
-         intervals_it != deleted.thresh_intervals_map.end();
-         intervals_it++){
-        int highest_rank = intervals_it->second.high_rank;
-        int higherRank = highest_rank + 1;
-        if (higherRank < lineCount) {
-            queue.maybe_add_intersection(stepSize, higherRank);
-        }
-        int lowest_rank = intervals_it->second.low_rank;
-        if (lowest_rank > prev_high_rank) {
-            queue.maybe_add_intersection(stepSize, lowest_rank);
-        }
-        prev_high_rank = highest_rank;
+      int lowest_rank = intervals_it->second.low_rank;
+      if (lowest_rank > prev_high_rank) {
+        queue.maybe_add_intersection(stepSize, lowest_rank);
       }
-      lastStepSize = stepSize;
+      prev_high_rank = highest_rank;
     }
-    return 0;//SUCCESS
+    lastStepSize = stepSize;
+  }
+  return 0;//SUCCESS
 }
