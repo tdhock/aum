@@ -81,6 +81,7 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
     Rcpp::NumericVector aucAfterStepVec(maxIterations, -1.0);
     Rcpp::IntegerVector intersectionCountVec(maxIterations, -1);
     Rcpp::IntegerVector intervalCountVec(maxIterations, -1);
+    Rcpp::IntegerVector qSizeVec(maxIterations, -1);
     int status = lineSearch(
             &intercept[0],
             &slope[0],
@@ -94,7 +95,8 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
             &aucAtStepVec[0],
             &aucAfterStepVec[0],
             &intersectionCountVec[0],
-            &intervalCountVec[0]
+            &intervalCountVec[0],
+	    &qSizeVec[0]
     );
     if(status == ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING){
       Rcpp::stop("intercepts should be non-decreasing");
@@ -115,5 +117,6 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
        Rcpp::Named("auc", aucAtStepVec),
        Rcpp::Named("auc.after", aucAfterStepVec),
        Rcpp::Named("intersections", intersectionCountVec),
-       Rcpp::Named("intervals", intervalCountVec));
+       Rcpp::Named("intervals", intervalCountVec),
+       Rcpp::Named("q.size", qSizeVec));
 }

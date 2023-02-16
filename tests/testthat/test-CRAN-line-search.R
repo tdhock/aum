@@ -25,10 +25,12 @@ test_that("contrived three way tie computed ok", {
   (expected.df <- rbind(
     data.frame(
       step.size=0, aum=1, aum.slope.after=-1, 
-      auc=3/8, auc.after=3/8, intersections=0, intervals=0),
+      auc=3/8, auc.after=3/8,
+      intersections=0, intervals=0, q.size=1),
     data.frame(
       step.size=1, aum=0, aum.slope.after=0.5, 
-      auc=0.5, auc.after=5/8, intersections=1, intervals=2)))
+      auc=0.5, auc.after=5/8,
+      intersections=1, intervals=2, q.size=0)))
   expect_equal(L, expected.df)
 })
 
@@ -42,13 +44,16 @@ test_that("contrived four way tie computed ok", {
   (expected.df <- rbind(
     data.frame(
       step.size=0, aum=3, aum.slope.after=-1, 
-      auc=1/4, auc.after=1/4, intersections=0, intervals=0),
+      auc=1/4, auc.after=1/4,
+      intersections=0, intervals=0, q.size=1),
     data.frame(
       step.size=1, aum=2, aum.slope.after=-1, 
-      auc=1/2, auc.after=3/4, intersections=2, intervals=2),
+      auc=1/2, auc.after=3/4,
+      intersections=2, intervals=2, q.size=1),
     data.frame(
       step.size=3, aum=0, aum.slope.after=0, 
-      auc=7/8, auc.after=1, intersections=1, intervals=1)))
+      auc=7/8, auc.after=1,
+      intersections=1, intervals=1, q.size=0)))
   expect_equal(L, expected.df)
 })
 
@@ -118,10 +123,12 @@ test_that("2 binary line search ok windows", {
   expected.dt <- rbind(
     data.table(
       step.size=0, aum=20, aum.slope.after=-2, 
-      auc=0, auc.after=0, intersections=0, intervals=0),
+      auc=0, auc.after=0,
+      intersections=0, intervals=0, q.size=1),
     data.table(
       step.size=10, aum=0, aum.slope.after=0, 
-      auc=0.5, auc.after=1, intersections=1, intervals=1))
+      auc=0.5, auc.after=1,
+      intersections=1, intervals=1, q.size=0))
   expect_equal(bin.line.search$line_search_result, expected.dt)
 })
 
@@ -130,7 +137,7 @@ test_that("line search initial auc correct for tie", {
   L <- aum::aum_line_search(bin.diffs, pred.vec=c(0,0))
   expected.row <- data.table(
     step.size=0, aum=0, aum.slope.after=0, auc=0.5, auc.after=1, 
-    intersections=0, intervals=0)
+    intersections=0, intervals=0, q.size=0)
   expect_equal(L$line_search_result, expected.row)
 })
 

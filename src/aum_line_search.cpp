@@ -231,7 +231,8 @@ int lineSearch
  double *aucAtStepVec,
  double *aucAfterStepVec,
  int *intersectionCountVec,
- int *intervalCountVec
+ int *intervalCountVec,
+ int *qSizeVec
  ) {
   // map from rank (index when sorted by threshold) to id of line
   // (in FP/FN/etc indices).
@@ -268,27 +269,25 @@ int lineSearch
   double lastStepSize = 0.0;
   double aum = 0.0;
   // build FP, FN, & M, and compute initial aum slope.
-  FN[0]=1;
-  FN[lineCount - 1] = -deltaFn[lineCount - 1];
-  for (int b = lineCount - 2; b >= 1; b--) {
-    FN[b] = FN[b + 1] - deltaFn[b];
+  double cumFN = 0.0;
+  for (int b = lineCount - 1; b >= 0; b--) {
+    cumFN -= deltaFn[b];
+    FN[b] = cumFN;
   }
-  FP[0]=0;
-  for (int b = 1; b < lineCount; b++) {
-    FP[b] = FP[b - 1] + deltaFp[b - 1];
+  double cumFP = 0.0;
+  for (int b = 0; b < lineCount; b++) {
+    FP[b] = cumFP;
+    cumFP += deltaFp[b];
     M[b] = min(FP[b], FN[b]);
-    aum += M[b]*(intercept_from_id[b]-intercept_from_id[b-1]);
+    if(b>0){
+      aum += M[b]*(intercept_from_id[b]-intercept_from_id[b-1]);
+    }
   }
-  double maxFP=0, maxFN=0;
-  for(int b=0; b<lineCount; b++){
-    maxFP += deltaFp[b];
-    maxFN -= deltaFn[b];
-  }
-  if(maxFP <= 0)return ERROR_LINE_SEARCH_MAX_FP_SHOULD_BE_POSITIVE;
-  if(maxFN <= 0)return ERROR_LINE_SEARCH_MAX_FN_SHOULD_BE_POSITIVE;
+  if(cumFP <= 0)return ERROR_LINE_SEARCH_MAX_FP_SHOULD_BE_POSITIVE;
+  if(cumFN <= 0)return ERROR_LINE_SEARCH_MAX_FN_SHOULD_BE_POSITIVE;
   // initialize AUC.
   TotalAUC total_auc
-    (&FP, maxFP, &FN, maxFN, 
+    (&FP, cumFP, &FN, cumFN, 
      &M, &id_from_rank, &rank_from_id, slope_from_id, lineCount);
   int last_line = 0;
   double last_thresh = intercept_from_id[0];
@@ -314,6 +313,7 @@ int lineSearch
   aucAfterStepVec[0] = total_auc.value;
   intersectionCountVec[0] = 0;
   intervalCountVec[0] = 0;
+  qSizeVec[0]=queue.step_ThreshIntervals_map.size();
   for//iterations/step sizes
     (int iteration = 1; 
      iteration < maxIterations && !queue.step_ThreshIntervals_map.empty(); 
@@ -397,6 +397,7 @@ int lineSearch
       }
       prev_high_rank = highest_rank;
     }
+    qSizeVec[iteration]=queue.step_ThreshIntervals_map.size();
     lastStepSize = stepSize;
   }
   return 0;//SUCCESS
