@@ -1,5 +1,12 @@
 TODOs
 
+2023.2.15
+
+Ties are now handled correctly in line
+search. aum_line_search$line_search_result contains new columns
+intersections and intervals, which are greater than 1 if there are any
+ties.
+
 2023.2.3
 
 aum_line_search$line_search_result contains new columns aucAtStep and
