@@ -24,6 +24,9 @@ aum_linear_model_cv <- structure(function
   initial.weight.fun=NULL
 ### Function for computing initial weight vector in gradient descent.
 ){
+  . <- fp_diff <- fn_diff <- example <- fp <- fn <- fold <- pred <- 
+    valid.fold <- sd <- aum_mean <- NULL
+  ## Above to suppress CRAN NOTE.
   example.totals <- diff.dt[, .(
     fn=sum(fn_diff),
     fp=sum(fp_diff)
@@ -157,6 +160,8 @@ aum_linear_model <- function
 ### Function for computing initial weights, default NULL means use a
 ### random standard normal vector.
 ){
+  fp_before <- fn_before <- thresh <- NULL
+  ## Above to suppress CRAN NOTE.
   weight.vec <- if(is.null(initial.weight.fun)){
     rnorm(ncol(feature.list$subtrain))
   }else{

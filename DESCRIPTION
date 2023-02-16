@@ -3,7 +3,7 @@ Type: Package
 Title: Area Under Minimum of False Positives and Negatives
 Version: 2023.2.15
 Authors@R: c(
-    person("Toby", "Hocking",
+    person("Toby Dylan", "Hocking",
      email="toby.hocking@r-project.org",
      role=c("aut", "cre")),
     person("Jadon", "Fowler",

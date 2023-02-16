@@ -13,6 +13,8 @@ aum_line_search <- structure(function
   maxIterations=nrow(error.diff.df)
 ### positive int: max number of line search iterations.
 ){
+  . <- fp.diff <- fn.diff <- intercept <- slope <- step.size <- NULL
+  ## Above to suppress CRAN NOTE.
   pred.null <- is.null(pred.vec)
   if(pred.null){
     pred.vec <- feature.mat %*% weight.vec
@@ -94,7 +96,8 @@ plot.aum_line_search <- function
   ...
 ### ignored.
 ){
-  step.size <- aum <- slope <- intercept <- NULL
+  step.size <- aum <- slope <- intercept <- auc.after <- auc <- 
+    min.step.size <- max.step.size <- NULL
   ## Above to suppress CRAN check NOTE.
   aum.df <- data.frame(panel="aum", x$line_search_result)
   ## TODO add row showing slope at end.
