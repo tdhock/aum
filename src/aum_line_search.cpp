@@ -5,10 +5,12 @@ bool Point::isFinite() const {
     return isfinite(x) && isfinite(y);
 }
 
-Point intersect(Line a, Line b) {
-    if (a.slope == b.slope) return Point{INFINITY, INFINITY};
-    double x = (b.intercept - a.intercept) / (a.slope - b.slope);
-    double y = a.intercept + a.slope * x;
+Point intersect
+(double a_intercept, double b_intercept, 
+ double a_slope, double b_slope) {
+    if (a_slope == b_slope) return Point{INFINITY, INFINITY};
+    double x = (b_intercept - a_intercept) / (a_slope - b_slope);
+    double y = a_intercept + a_slope * x;
     return Point{x, y};
 }
 
@@ -80,7 +82,7 @@ class TotalAUC {
   public:
   vector<double> *FP, *FN, *M;
   vector<int> *id_from_rank, *rank_from_id;
-  const Line *lines;
+  const double *slope_from_id;
   double value, aum_slope, maxFP, maxFN;
   int lineCount;
   TotalAUC
@@ -91,7 +93,7 @@ class TotalAUC {
    vector<double> *M_, 
    vector<int> *id_from_rank_,
    vector<int> *rank_from_id_,
-   const Line *lines_,
+   const double *slope_from_id_,
    int lineCount_){
     FP = FP_;
     maxFP = maxFP_;
@@ -100,7 +102,7 @@ class TotalAUC {
     M = M_;
     id_from_rank = id_from_rank_;
     rank_from_id = rank_from_id_;
-    lines = lines_;
+    slope_from_id = slope_from_id_;
     lineCount = lineCount_;
     zero();
   }
@@ -149,7 +151,7 @@ class TotalAUC {
        rank < last_rightRank; 
        rank++){
       int id = (*id_from_rank)[rank];
-      double rank_slope = lines[id].slope;
+      double rank_slope = slope_from_id[id];
       double min_diff = m(rank)-m(rank+1);
       double slope_update = sign*rank_slope*min_diff;
       aum_slope += slope_update;
@@ -175,14 +177,16 @@ class Queue {
   public:
   map<double,ThreshIntervals> step_ThreshIntervals_map;
   vector<int> *id_from_rank, *rank_from_id;
-  const Line *lines;
+  const double *intercept_from_id, *slope_from_id;
   Queue
   (vector<int> *id_from_rank_, 
    vector<int> *rank_from_id_,
-   const Line *lines_){
+   const double *intercept_from_id_,
+   const double *slope_from_id_){
     id_from_rank = id_from_rank_;
     rank_from_id = rank_from_id_;
-    lines = lines_;
+    intercept_from_id = intercept_from_id_;
+    slope_from_id = slope_from_id_;
   }
   void insert_step
   (map<double,ThreshIntervals>::iterator it,
@@ -197,7 +201,9 @@ class Queue {
   void maybe_add_intersection(double prevStepSize, int high_rank){
     int high_id = (*id_from_rank)[high_rank];
     int low_id = (*id_from_rank)[high_rank-1];
-    Point intersectionPoint = intersect(lines[low_id], lines[high_id]);
+    Point intersectionPoint = intersect
+      (intercept_from_id[low_id], intercept_from_id[high_id],
+       slope_from_id[low_id], slope_from_id[high_id]);
     // intersection points with infinite values aren't real intersections
     if (intersectionPoint.isFinite() && intersectionPoint.x > prevStepSize) {
       auto it = step_ThreshIntervals_map.lower_bound(intersectionPoint.x);
@@ -213,7 +219,8 @@ class Queue {
 };
 
 int lineSearch
-(const Line *lines,
+(const double *intercept_from_id,
+ const double *slope_from_id,
  int lineCount,
  const double *deltaFp,
  const double *deltaFn,
@@ -236,7 +243,8 @@ int lineSearch
   for (int i = 0; i < lineCount; i++) {
     id_from_rank[i] = rank_from_id[i] = i;
   }
-  Queue queue(&id_from_rank, &rank_from_id, lines);
+  Queue queue
+    (&id_from_rank, &rank_from_id, intercept_from_id, slope_from_id);
   // start by queueing intersections of every line and the line after it
   for
     (int lineIndexLowBeforeIntersect = 0;
@@ -244,15 +252,15 @@ int lineSearch
      lineIndexLowBeforeIntersect++) {
     int lineIndexHighBeforeIntersect = lineIndexLowBeforeIntersect + 1;
     if
-      (lines[lineIndexLowBeforeIntersect].intercept >
-       lines[lineIndexHighBeforeIntersect].intercept) {
+      (intercept_from_id[lineIndexLowBeforeIntersect] >
+       intercept_from_id[lineIndexHighBeforeIntersect]) {
       return ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING;
     }
     if
-      ((lines[lineIndexLowBeforeIntersect].intercept ==
-        lines[lineIndexHighBeforeIntersect].intercept) &&
-       (lines[lineIndexLowBeforeIntersect].slope >=
-        lines[lineIndexHighBeforeIntersect].slope)) {
+      ((intercept_from_id[lineIndexLowBeforeIntersect] ==
+        intercept_from_id[lineIndexHighBeforeIntersect]) &&
+       (slope_from_id[lineIndexLowBeforeIntersect] >=
+        slope_from_id[lineIndexHighBeforeIntersect])) {
       return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
     }
     queue.maybe_add_intersection(0, lineIndexHighBeforeIntersect);
@@ -269,7 +277,7 @@ int lineSearch
   for (int b = 1; b < lineCount; b++) {
     FP[b] = FP[b - 1] + deltaFp[b - 1];
     M[b] = min(FP[b], FN[b]);
-    aum += M[b]*(lines[b].intercept-lines[b-1].intercept);
+    aum += M[b]*(intercept_from_id[b]-intercept_from_id[b-1]);
   }
   double maxFP=0, maxFN=0;
   for(int b=0; b<lineCount; b++){
@@ -279,15 +287,15 @@ int lineSearch
   // initialize AUC.
   TotalAUC total_auc
     (&FP, maxFP, &FN, maxFN, 
-     &M, &id_from_rank, &rank_from_id, lines, lineCount);
+     &M, &id_from_rank, &rank_from_id, slope_from_id, lineCount);
   int last_line = 0;
-  double last_thresh = lines[0].intercept;
+  double last_thresh = intercept_from_id[0];
   for(int line_i=1; line_i<=lineCount; line_i++){
     double thresh;
     if(line_i==lineCount){
       thresh = INFINITY;
     }else{
-      thresh = lines[line_i].intercept;
+      thresh = intercept_from_id[line_i];
     }
     if(last_thresh < thresh){
       total_auc.value += total_auc.get_auc(last_line, line_i);

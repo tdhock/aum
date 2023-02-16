@@ -6,26 +6,16 @@
 #include <map>
 #include <cmath>
 
-class Line {
-  public:
-  double slope;
-  double intercept;
-  double thresh(double step) const;
-};
-
 struct Point {
     double x; // step size
     double y;
-
     bool operator==(Point other) const;
-
     bool isFinite() const;
 };
 
-Point intersect(Line a, Line b);
-
 int lineSearch(
-        const Line *lines,
+        const double *intercept,
+        const double *slope,
         int lineCount,
         const double *deltaFp,
         const double *deltaFn,

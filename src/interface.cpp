@@ -74,13 +74,6 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
     Rcpp::NumericVector intercept = df["intercept"];
     Rcpp::NumericVector slope = df["slope"];
     int lineCount = df.nrow();
-    // build lines
-    std::vector<Line> lines;
-    lines.reserve(lineCount);
-    for (int i = 0; i < lineCount; i++) {
-        Line line = Line { slope[i], intercept[i] };
-        lines.push_back(line);
-    }
     Rcpp::NumericVector stepSizeVec(maxIterations, -1.0);
     Rcpp::NumericVector aumVec(maxIterations, -1.0);
     Rcpp::NumericVector aumSlopeAfterStepVec(maxIterations, -100.0);
@@ -89,7 +82,8 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
     Rcpp::IntegerVector intersectionCountVec(maxIterations, -1);
     Rcpp::IntegerVector intervalCountVec(maxIterations, -1);
     int status = lineSearch(
-            &lines[0],
+            &intercept[0],
+            &slope[0],
             lineCount,
             &fpDiff[0],
             &fnDiff[0],
