@@ -21,7 +21,7 @@ example-specific error functions.}
 
 \value{List of class aum_line_search_grid.}
 
-\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
+\author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 
@@ -55,7 +55,8 @@ nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep))
 nb.weight.search <- aum::aum_line_search_grid(
   nb.diffs,
   feature.mat=X.keep,
-  weight.vec=weight.vec)
+  weight.vec=weight.vec,
+  maxIterations = 200)
 if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
 ## Example 4: many changepoint examples, optimize predictions.
@@ -64,5 +65,18 @@ all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
 current.pred <- rep(0, length(all.ids))
 nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred)
 plot(nb.search)
+
+## Example 5: counting intersections and intervals at each
+## iteration/step size, when there are ties.
+(bin.diffs <- aum::aum_diffs_binary(c(0,0,0,1,1,1)))
+bin.line.search <- aum::aum_line_search(bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
+if(requireNamespace("ggplot2"))
+  plot(bin.line.search)+
+    geom_text(aes(
+      step.size, Inf, label=sprintf(
+        "\%d,\%d", intersections, intervals)),
+      vjust=1.1,
+      data=data.table(
+        panel="threshold", bin.line.search$line_search_result))
 
 }

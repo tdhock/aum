@@ -34,7 +34,7 @@ value which results in minimal total error (FP+FN), learned via a
 linear scan over all possible values given the final weight
 vector.}
 
-\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
+\author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 

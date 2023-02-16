@@ -18,7 +18,7 @@ example-specific error functions.}
 
 \value{List of class aum_line_search.}
 
-\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
+\author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 
@@ -53,7 +53,8 @@ weight.vec <- rep(0, ncol(X.keep))
 nb.weight.search <- aum::aum_line_search(
   nb.diffs,
   feature.mat=X.keep,
-  weight.vec=weight.vec)
+  weight.vec=weight.vec, 
+  maxIterations = 200)
 if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
 ## Example 4: many changepoint examples, optimize predictions.
@@ -64,7 +65,19 @@ nb.all.search <- aum::aum_line_search(
   all.diffs, pred.vec=current.pred, maxIterations=2e5)
 library(data.table)
 all.result <- data.table(nb.all.search$line_search_result)
-some.result <- all.result[as.integer(seq(1, .N, l=100))]
-plot(log10(aum) ~ step.size, some.result)
+some.wide <- all.result[
+  as.integer(seq(1, .N, l=100))
+][, log10.aum := log10(aum)]
+some.tall <- melt(some.wide, measure.vars = c("auc", "log10.aum"))
+if(require(ggplot2)){
+  ggplot()+
+    geom_point(aes(
+      step.size, value),
+      shape=1,
+      data=some.tall)+
+    facet_grid(variable ~ ., scales="free")+
+    theme_bw()+
+    theme(panel.spacing=grid::unit(0,"lines"))
+}
 
 }

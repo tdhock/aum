@@ -35,7 +35,7 @@ for the original/scaled feature space, fold.loss/set.loss are data
 tables of loss values for the subtrain/validation sets, used for
 selecting the best number of gradient descent steps.}
 
-\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
+\author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 

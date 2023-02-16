@@ -73,7 +73,8 @@ aum_line_search <- structure(function
   nb.weight.search <- aum::aum_line_search(
     nb.diffs,
     feature.mat=X.keep,
-    weight.vec=weight.vec)
+    weight.vec=weight.vec, 
+    maxIterations = 200)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
   ## Example 4: many changepoint examples, optimize predictions.
@@ -84,8 +85,20 @@ aum_line_search <- structure(function
     all.diffs, pred.vec=current.pred, maxIterations=2e5)
   library(data.table)
   all.result <- data.table(nb.all.search$line_search_result)
-  some.result <- all.result[as.integer(seq(1, .N, l=100))]
-  plot(log10(aum) ~ step.size, some.result)
+  some.wide <- all.result[
+    as.integer(seq(1, .N, l=100))
+  ][, log10.aum := log10(aum)]
+  some.tall <- melt(some.wide, measure.vars = c("auc", "log10.aum"))
+  if(require(ggplot2)){
+    ggplot()+
+      geom_point(aes(
+        step.size, value),
+        shape=1,
+        data=some.tall)+
+      facet_grid(variable ~ ., scales="free")+
+      theme_bw()+
+      theme(panel.spacing=grid::unit(0,"lines"))
+  }
   
 })
 
@@ -100,7 +113,14 @@ plot.aum_line_search <- function
     min.step.size <- max.step.size <- NULL
   ## Above to suppress CRAN check NOTE.
   aum.df <- data.frame(panel="aum", x$line_search_result)
-  ## TODO add row showing slope at end.
+  last <- x$line_search_result[.N]
+  step.after <- last$step*1.05
+  step.diff <- step.after-last$step
+  last.seg <- data.table(
+    panel="aum",
+    last,
+    step.after, 
+    aum.after=last[, step.diff*aum.slope.after+aum])
   auc.segs <- x$line_search_result[, data.table(
     panel="auc", 
     min.step.size=step.size,
@@ -116,9 +136,6 @@ plot.aum_line_search <- function
       xintercept=step.size),
       color="grey",
       data=x$line_search_result)+
-    ggplot2::geom_point(ggplot2::aes(
-      step.size, aum),
-      data=aum.df)+
     ggplot2::geom_line(ggplot2::aes(
       step.size, aum),
       size=1,
@@ -127,8 +144,15 @@ plot.aum_line_search <- function
       min.step.size, auc,
       xend=max.step.size, yend=auc),
       data=auc.segs)+
+    ggplot2::geom_segment(ggplot2::aes(
+      step.size, aum,
+      xend=step.after, yend=aum.after),
+      linetype="dotted",
+      size=1,
+      data=last.seg)+
     ggplot2::geom_point(ggplot2::aes(
       step.size, auc),
+      shape=1,
       data=auc.points)+
     ggplot2::facet_grid(panel ~ ., scales="free")+
     ggplot2::geom_abline(ggplot2::aes(
@@ -201,7 +225,8 @@ aum_line_search_grid <- structure(function
   nb.weight.search <- aum::aum_line_search_grid(
     nb.diffs,
     feature.mat=X.keep,
-    weight.vec=weight.vec)
+    weight.vec=weight.vec,
+    maxIterations = 200)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
   ## Example 4: many changepoint examples, optimize predictions.
@@ -210,6 +235,19 @@ aum_line_search_grid <- structure(function
   current.pred <- rep(0, length(all.ids))
   nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred)
   plot(nb.search)
+
+  ## Example 5: counting intersections and intervals at each
+  ## iteration/step size, when there are ties.
+  (bin.diffs <- aum::aum_diffs_binary(c(0,0,0,1,1,1)))
+  bin.line.search <- aum::aum_line_search(bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
+  if(requireNamespace("ggplot2"))
+    plot(bin.line.search)+
+      geom_text(aes(
+        step.size, Inf, label=sprintf(
+          "%d,%d", intersections, intervals)),
+        vjust=1.1,
+        data=data.table(
+          panel="threshold", bin.line.search$line_search_result))
 
 })
   
