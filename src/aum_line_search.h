@@ -1,10 +1,9 @@
 #ifndef AUM_LINE_SEARCH_AUMLINESEARCH_H
 #define AUM_LINE_SEARCH_AUMLINESEARCH_H
-#include <iostream>
-#include <algorithm>
+#include <algorithm>//reverse
 #include <vector>
 #include <map>
-#include <cmath>
+#include <cmath>//isfinite
 
 struct Point {
     double x; // step size
@@ -32,5 +31,7 @@ int lineSearch(
 
 #define ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING 1
 #define ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS 2
+#define ERROR_LINE_SEARCH_MAX_FP_SHOULD_BE_POSITIVE 3
+#define ERROR_LINE_SEARCH_MAX_FN_SHOULD_BE_POSITIVE 3
 
 #endif //AUM_LINE_SEARCH_AUMLINESEARCH_H

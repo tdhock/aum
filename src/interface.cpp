@@ -102,6 +102,12 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
     if(status == ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS){
       Rcpp::stop("slopes should be increasing for equal intercepts");
     }
+    if(status == ERROR_LINE_SEARCH_MAX_FP_SHOULD_BE_POSITIVE){
+      Rcpp::stop("max FP should be positive");
+    }
+    if(status == ERROR_LINE_SEARCH_MAX_FN_SHOULD_BE_POSITIVE){
+      Rcpp::stop("max FN should be positive");
+    }
     return Rcpp::DataFrame::create
       (Rcpp::Named("step.size", stepSizeVec),
        Rcpp::Named("aum", aumVec), 

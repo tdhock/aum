@@ -284,6 +284,8 @@ int lineSearch
     maxFP += deltaFp[b];
     maxFN -= deltaFn[b];
   }
+  if(maxFP <= 0)return ERROR_LINE_SEARCH_MAX_FP_SHOULD_BE_POSITIVE;
+  if(maxFN <= 0)return ERROR_LINE_SEARCH_MAX_FN_SHOULD_BE_POSITIVE;
   // initialize AUC.
   TotalAUC total_auc
     (&FP, maxFP, &FN, maxFN, 
