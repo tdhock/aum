@@ -63,13 +63,15 @@ if(requireNamespace("ggplot2"))plot(nb.weight.search)
 all.ids <- rownames(neuroblastomaProcessed$feature.mat)
 all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
 current.pred <- rep(0, length(all.ids))
-nb.search <- aum::aum_line_search_grid(all.diffs, pred.vec=current.pred)
+nb.search <- aum::aum_line_search_grid(
+  all.diffs, pred.vec=current.pred, maxIterations=1e4)
 plot(nb.search)
 
 ## Example 5: counting intersections and intervals at each
 ## iteration/step size, when there are ties.
 (bin.diffs <- aum::aum_diffs_binary(c(0,0,0,1,1,1)))
-bin.line.search <- aum::aum_line_search_grid(bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
+bin.line.search <- aum::aum_line_search_grid(
+  bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
 if(requireNamespace("ggplot2"))plot(bin.line.search)+
     geom_text(aes(
       step.size, Inf, label=sprintf(

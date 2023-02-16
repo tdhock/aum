@@ -63,6 +63,7 @@ nb.weight.full <- aum::aum_line_search(
   feature.mat=X.keep,
   weight.vec=weight.vec, 
   maxIterations = 1000)
+library(data.table)
 weight.result.tall <- suppressWarnings(melt(
   nb.weight.full$line_search_result[, iteration:=1:.N][, .(
     iteration, auc, q.size,
@@ -85,9 +86,7 @@ all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
 current.pred <- rep(0, length(all.ids))
 nb.all.search <- aum::aum_line_search(
   all.diffs, pred.vec=current.pred, maxIterations=2e5)
-library(data.table)
-all.result <- data.table(nb.all.search$line_search_result)
-some.wide <- all.result[
+some.wide <- data.table(nb.all.search$line_search_result)[
   as.integer(seq(1, .N, l=100))
 ][, log10.aum := log10(aum)]
 some.tall <- melt(some.wide, measure.vars = c("auc", "log10.aum"))
