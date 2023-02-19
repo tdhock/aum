@@ -223,9 +223,24 @@ aum_line_search_grid <- structure(function
     seq(0, max(L$line_search_result$step.size), l=n.grid))))
   step.mat <- matrix(step.size, length(L$pred.vec), length(step.size), byrow=TRUE)
   pred.mat <- as.numeric(L$pred.vec)-step.mat*as.numeric(L$gradient)
-  L$grid_aum <- data.table(
-    step.size,
-    aum=apply(pred.mat, 2, function(pred)aum::aum(error.diff.df, pred)$aum))
+  totals <- colSums(error.diff.df[, .(fp_diff, fn_diff)])
+  grid.dt.list <- list()
+  for(pred.col in 1:ncol(pred.mat)){
+    pred <- pred.mat[,pred.col]
+    grid.aum <- aum::aum(error.diff.df, pred)
+    before.dt <- data.table(grid.aum$total_error, key="thresh")[, `:=`(
+      TPR_before=1-fn_before/-totals[["fn_diff"]],
+      FPR_before=fp_before/totals[["fp_diff"]])]
+    auc <- before.dt[, .(
+      FPR=c(FPR_before, 1),
+      TPR=c(TPR_before, 1)
+    )][, sum((FPR[-1]-FPR[-.N])*(TPR[-1]+TPR[-.N])/2)]
+    grid.dt.list[[pred.col]] <- data.table(
+      step.size=step.size[pred.col],
+      aum=grid.aum$aum,
+      auc)
+  }
+  L$grid_aum <- rbindlist(grid.dt.list)
   class(L) <- c("aum_line_search_grid", class(L))
   L
 ### List of class aum_line_search_grid.
@@ -301,8 +316,20 @@ plot.aum_line_search_grid <- function
     search="exact", panel="aum", x$line_search_result)
   abline.df <- data.frame(
     search="exact", panel="threshold", x$line_search_input)
-  grid.df <- data.frame(
-    search="grid", panel="aum", x$grid_aum)
+  
+  grid.df <- melt(
+    data.table(search="grid", x$grid_aum), 
+    measure.vars = c("auc", "aum"), 
+    variable.name="panel")
+  auc.segs <- x$line_search_result[, data.table(
+    panel="auc", 
+    min.step.size=step.size,
+    max.step.size=c(step.size[-1],Inf),
+    auc=auc.after)]
+  auc.points <- x$line_search_result[, data.table(
+    panel="auc",
+    step.size, 
+    auc)]
   ggplot2::ggplot()+
     ggplot2::theme_bw()+
     ggplot2::theme(panel.spacing=grid::unit(0,"lines"))+
@@ -310,24 +337,31 @@ plot.aum_line_search_grid <- function
       xintercept=step.size),
       color="grey",
       data=x$line_search_result)+
+    ggplot2::geom_segment(ggplot2::aes(
+      min.step.size, auc,
+      xend=max.step.size, yend=auc),
+      data=auc.segs)+
     ggplot2::geom_point(ggplot2::aes(
-      step.size, aum, color=search),
-      data=aum.df)+
+      step.size, auc),
+      shape=1,
+      data=auc.points)+
     ggplot2::geom_line(ggplot2::aes(
       step.size, aum, color=search),
-      size=1,
       data=aum.df)+
+    ggplot2::scale_color_manual(
+      values=c(exact="black", grid="red"))+
     ggplot2::facet_grid(panel ~ ., scales="free")+
     ggplot2::geom_abline(ggplot2::aes(
       slope=slope, intercept=intercept, color=search),
       data=abline.df)+
     ggplot2::geom_point(ggplot2::aes(
       0, intercept, color=search),
+      shape=1,
       data=abline.df)+
     ggplot2::scale_y_continuous("")+
     ggplot2::geom_point(
       ggplot2::aes(
-        step.size, aum, color=search),
+        step.size, value, color=search),
       shape=1,
       data=grid.df)
 ### ggplot.
