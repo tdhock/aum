@@ -289,7 +289,7 @@ aum_line_search_grid <- structure(function
   ## iteration/step size, when there are ties.
   (bin.diffs <- aum::aum_diffs_binary(c(0,0,0,1,1,1)))
   bin.line.search <- aum::aum_line_search_grid(
-    bin.diffs, pred.vec=c(2,3,-1,1,-2,0))
+    bin.diffs, pred.vec=c(2,3,-1,1,-2,0), n.grid=21) 
   if(require("ggplot2")){
     plot(bin.line.search)+
       geom_text(aes(
@@ -316,7 +316,6 @@ plot.aum_line_search_grid <- function
     search="exact", panel="aum", x$line_search_result)
   abline.df <- data.frame(
     search="exact", panel="threshold", x$line_search_input)
-  
   grid.df <- melt(
     data.table(search="grid", x$grid_aum), 
     measure.vars = c("auc", "aum"), 
@@ -343,7 +342,6 @@ plot.aum_line_search_grid <- function
       data=auc.segs)+
     ggplot2::geom_point(ggplot2::aes(
       step.size, auc),
-      shape=1,
       data=auc.points)+
     ggplot2::geom_line(ggplot2::aes(
       step.size, aum, color=search),
