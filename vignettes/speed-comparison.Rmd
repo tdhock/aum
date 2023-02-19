@@ -186,3 +186,55 @@ directlabels::direct.label(gg, "right.polygons")
 
 ```
 
+## Comparing line search speed
+
+```{r}
+
+X.sc <- scale(neuroblastomaProcessed$feature.mat)
+keep <- apply(is.finite(X.sc), 2, all)
+X.keep <- X.sc[,keep]
+weight.vec <- rep(0, ncol(X.keep))
+(nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
+
+atime.list <- atime::atime(
+  N=2^seq(1, 8, by=1),
+  setup={
+    step.grid <- 10^seq(-9, 1, l=N)
+  }, 
+  grid={
+    pred.vec <- X.keep %*% weight.vec
+    aum.list <- aum::aum(nb.diffs, pred.vec)
+    pred.grad.vec <- rowMeans(aum.list$derivative_mat)
+    weight.grad.vec <- t(X.keep) %*% pred.grad.vec
+    data.table(step.size=step.grid, aum=sapply(step.grid, function(step){
+      step.weight <- weight.vec-step*weight.grad.vec
+      aum::aum(nb.diffs, X.keep %*% step.weight)$aum
+    }))
+  },
+  exact=aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec),
+  result=TRUE,
+  seconds.limit=1
+)
+## 4 grid points faster, 8 grid points slower.
+plot(atime.list)
+
+exact.result <- atime.list$measurements[
+  expr.name=="exact"
+]$result[[1]]$line_search_result[, prop.step := seq(1, .N)/.N]
+exact.best <- data.table(exact.result)[which.min(aum)]
+grid.dt <- atime.list$measurements[expr.name=="grid", {
+  result[[1]][which.min(aum)]
+}, by=N]
+ggplot()+
+  geom_hline(aes(
+    yintercept=aum),
+    data=exact.best)+
+  geom_point(aes(
+    N, aum),
+    data=grid.dt)+
+  scale_x_log10()
+## 2 grid points larger aum than exact, 4 grid points smaller.
+```
