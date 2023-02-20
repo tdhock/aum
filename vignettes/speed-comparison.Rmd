@@ -202,36 +202,39 @@ X.keep <- X.sc[,keep]
 weight.vec <- rep(0, ncol(X.keep))
 (nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
 
-atime.list <- atime::atime(
-  N=2^seq(1, 8, by=1),
-  setup={
-    step.grid <- 10^seq(-9, 1, l=N)
-  }, 
-  grid={
-    pred.vec <- X.keep %*% weight.vec
-    aum.list <- aum::aum(nb.diffs, pred.vec)
-    pred.grad.vec <- rowMeans(aum.list$derivative_mat)
-    weight.grad.vec <- t(X.keep) %*% pred.grad.vec
-    data.table(step.size=step.grid, aum=sapply(step.grid, function(step){
-      step.weight <- weight.vec-step*weight.grad.vec
-      aum::aum(nb.diffs, X.keep %*% step.weight)$aum
-    }))
-  },
-  exact.linear=aum::aum_line_search(
-    nb.diffs,
-    feature.mat=X.keep,
-    weight.vec=weight.vec),
-  exact.quadratic=aum::aum_line_search(
-    nb.diffs,
-    feature.mat=X.keep,
-    weight.vec=weight.vec,
-    maxIterations = nrow(nb.diffs)*(nrow(nb.diffs)-1)/2),
-  result=TRUE,
-  seconds.limit=0.1
-)
-## 4 grid points faster, 8 grid points slower.
-plot(atime.list)
-dcast(atime.list$measurements, N ~ expr.name, value.var="median")
+if(require(atime)){
+  atime.list <- atime(
+    N=2^seq(1, 8, by=1),
+    setup={
+      step.grid <- 10^seq(-9, 1, l=N)
+    }, 
+    grid={
+      pred.vec <- X.keep %*% weight.vec
+      aum.list <- aum::aum(nb.diffs, pred.vec)
+      pred.grad.vec <- rowMeans(aum.list$derivative_mat)
+      weight.grad.vec <- t(X.keep) %*% pred.grad.vec
+      data.table(step.size=step.grid, aum=sapply(step.grid, function(step){
+        step.weight <- weight.vec-step*weight.grad.vec
+        aum::aum(nb.diffs, X.keep %*% step.weight)$aum
+      }))
+    },
+    exact.linear=aum::aum_line_search(
+      nb.diffs,
+      feature.mat=X.keep,
+      weight.vec=weight.vec),
+    exact.quadratic=aum::aum_line_search(
+      nb.diffs,
+      feature.mat=X.keep,
+      weight.vec=weight.vec,
+      maxIterations = nrow(nb.diffs)*(nrow(nb.diffs)-1)/2),
+    result=TRUE,
+    seconds.limit=0.1
+  )
+  plot(atime.list)
+}
+if(require(atime)){
+  dcast(atime.list$measurements, N ~ expr.name, value.var="median")
+}
 ```
 
 The figure and table above show that the exact line search with a
@@ -239,15 +242,15 @@ linear number of iterations can be computed in about the same amount
 of time as grid search with 8 points.
 
 ```{r}
-exact.results <- atime.list$measurements[
-  expr.name!="grid", 
-  result[[1]]$line_search_result[, prop.step := seq(1, .N)/.N],
-  by=expr.name]
-exact.best <- exact.results[, .SD[which.min(aum)], by=expr.name]
-grid.dt <- atime.list$measurements[expr.name=="grid", {
-  result[[1]][which.min(aum)]
-}, by=N]
-if(require(ggplot2)){
+if(require(atime) && require(ggplot2)){
+  exact.results <- atime.list$measurements[
+    expr.name!="grid", 
+    result[[1]]$line_search_result[, prop.step := seq(1, .N)/.N],
+    by=expr.name]
+  exact.best <- exact.results[, .SD[which.min(aum)], by=expr.name]
+  grid.dt <- atime.list$measurements[expr.name=="grid", {
+    result[[1]][which.min(aum)]
+  }, by=N]
   ggplot()+
     geom_hline(aes(
       yintercept=aum, color=expr.name),
@@ -271,12 +274,12 @@ a step size which is almost as good as the exact line search with
 quadratic number of iterations.
 
 ```{r}
-exact.quad <- exact.results[
-  step.size<max(grid.dt$step.size)
-][expr.name=="exact.quadratic"][seq(1, .N, l=1000)]
-exact.lin <- exact.results[expr.name=="exact.linear"]
-some.exact <- rbind(exact.quad, exact.lin)
-if(require(ggplot2)){
+if(require(atime) && require(ggplot2)){
+  exact.quad <- exact.results[
+    step.size<max(grid.dt$step.size)
+  ][expr.name=="exact.quadratic"][seq(1, .N, l=1000)]
+  exact.lin <- exact.results[expr.name=="exact.linear"]
+  some.exact <- rbind(exact.quad, exact.lin)
   gg <- ggplot()+
     geom_line(aes(
       step.size, aum, color=expr.name, size=expr.name),
@@ -293,8 +296,8 @@ if(require(ggplot2)){
         data=grid.dt)+
       ggtitle("Best AUM for number of grid points shown")
   }
+  gg   
 }
-gg   
 ```
 
 The figure above shows the AUM as a function of step size, with
@@ -302,31 +305,34 @@ colored lines for two versions of the exact line search, and points
 for the grid search.
 
 ```{r}
-atimeX.list <- atime::atime(
-  N=2^seq(1, 10, by=1),
-  setup={
-    some.X <- X.keep[1:N,]
-    (some.diffs <- aum::aum_diffs_penalty(nb.err, rownames(some.X)))
-    max.it <- N*(N-1)/2
-  }, 
-  exact.quadratic=aum::aum_line_search(
-    some.diffs,
-    feature.mat=some.X,
-    weight.vec=weight.vec,
-    maxIterations = max.it),
-  result=TRUE,
-  seconds.limit=0.1
-)
-plot(atimeX.list)
+if(require(atime)){
+  atimeX.list <- atime::atime(
+    N=2^seq(1, 10, by=1),
+    setup={
+      some.X <- X.keep[1:N,]
+      (some.diffs <- aum::aum_diffs_penalty(nb.err, rownames(some.X)))
+      max.it <- N*(N-1)/2
+    }, 
+    exact.quadratic=aum::aum_line_search(
+      some.diffs,
+      feature.mat=some.X,
+      weight.vec=weight.vec,
+      maxIterations = max.it),
+    result=TRUE,
+    seconds.limit=0.1
+  )
+  plot(atimeX.list)
+}
 ```
 
 The plot above shows the time it takes to compute the full/quadratic
 exact line search, for various data sizes `N`.
 
 ```{r}
-best.list <- atime::references_best(atimeX.list)
-best.refs <- best.list$ref[each.sign.rank==1]
-if(require(ggplot2)){
+if(require(atime) && require(ggplot2)){
+  best.list <- atime::references_best(atimeX.list)
+  best.refs <- best.list$ref[each.sign.rank==1]
+  ref.color <- "red"
   gg <- ggplot()+
     geom_line(aes(
       N, reference, group=fun.name),
@@ -362,18 +368,18 @@ quadratic time/space complexity of computing the full exact line
 search.
 
 ```{r}
-(N.step.wide <- atimeX.list$measurements[, {
-  ls.list <- result[[1]]
-  res.dt <- ls.list$line_search_result
-  s <- res.dt$step.size
-  N.lines <- nrow(ls.list$line_search_input)
-  data.table(
-    min.step=s[2],
-    linear.step=s[N.lines],
-    best.step=res.dt[which.min(aum), step.size],
-    max.step=max(s))
-}, by=N])
-if(require(nc) && require(ggplot2) && require(directlabels)){
+if(require(atime) && require(nc) && require(ggplot2) && require(directlabels)){
+  (N.step.wide <- atimeX.list$measurements[, {
+    ls.list <- result[[1]]
+    res.dt <- ls.list$line_search_result
+    s <- res.dt$step.size
+    N.lines <- nrow(ls.list$line_search_input)
+    data.table(
+      min.step=s[2],
+      linear.step=s[N.lines],
+      best.step=res.dt[which.min(aum), step.size],
+      max.step=max(s))
+  }, by=N])
   N.step.tall <- capture_melt_single(
     N.step.wide[max.step>0],
     step.type=".*?",
