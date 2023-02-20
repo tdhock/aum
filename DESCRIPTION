@@ -29,5 +29,8 @@ Suggests:
     mlbench,
     lattice,
     directlabels, microbenchmark,
-    covr
+    covr,
+    atime,
+    future.apply,
+    ggrepel
 VignetteBuilder: knitr
