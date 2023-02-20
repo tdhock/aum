@@ -5,7 +5,8 @@ TODOs
 Ties are now handled correctly in line
 search. aum_line_search$line_search_result contains new columns
 intersections and intervals, which are greater than 1 if there are any
-ties.
+ties. Also new column q.size contains the number of step sizes in the
+queue at each iteration.
 
 2023.2.3
 
