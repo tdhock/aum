@@ -211,30 +211,78 @@ atime.list <- atime::atime(
       aum::aum(nb.diffs, X.keep %*% step.weight)$aum
     }))
   },
-  exact=aum::aum_line_search(
+  exact.linear=aum::aum_line_search(
     nb.diffs,
     feature.mat=X.keep,
     weight.vec=weight.vec),
+  exact.quadratic=aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec,
+    maxIterations = nrow(nb.diffs)*(nrow(nb.diffs)-1)/2),
   result=TRUE,
-  seconds.limit=1
+  seconds.limit=0.1
 )
 ## 4 grid points faster, 8 grid points slower.
 plot(atime.list)
 
-exact.result <- atime.list$measurements[
-  expr.name=="exact"
-]$result[[1]]$line_search_result[, prop.step := seq(1, .N)/.N]
-exact.best <- data.table(exact.result)[which.min(aum)]
+exact.results <- atime.list$measurements[
+  expr.name!="grid", 
+  result[[1]]$line_search_result[, prop.step := seq(1, .N)/.N],
+  by=expr.name]
+exact.best <- exact.results[, .SD[which.min(aum)], by=expr.name]
 grid.dt <- atime.list$measurements[expr.name=="grid", {
   result[[1]][which.min(aum)]
 }, by=N]
 ggplot()+
   geom_hline(aes(
-    yintercept=aum),
+    yintercept=aum, color=expr.name),
     data=exact.best)+
   geom_point(aes(
     N, aum),
     data=grid.dt)+
   scale_x_log10()
 ## 2 grid points larger aum than exact, 4 grid points smaller.
+
+exact.quad <- exact.results[
+  step.size<max(grid.dt$step.size)
+][expr.name=="exact.quadratic"][seq(1, .N, l=1000)]
+exact.lin <- exact.results[expr.name=="exact.linear"]
+some.exact <- rbind(exact.quad, exact.lin)
+ggplot()+
+  geom_line(aes(
+    step.size, aum, color=expr.name, size=expr.name),
+    data=some.exact)+
+  geom_point(aes(
+    step.size, aum),
+    data=grid.dt)+
+  scale_size_manual(
+    values=c(exact.linear=1.5, exact.quadratic=0.5))
+
+atimeX.list <- atime::atime(
+  N=2^seq(1, 8, by=1),
+  setup={
+    some.X <- X.keep[1:N,]
+    (some.diffs <- aum::aum_diffs_penalty(nb.err, rownames(some.X)))
+    max.it <- N*(N-1)/2
+  }, 
+  exact.quadratic=aum::aum_line_search(
+    some.diffs,
+    feature.mat=some.X,
+    weight.vec=weight.vec,
+    maxIterations = max.it),
+  result=TRUE,
+  seconds.limit=0.1
+)
+plot(atimeX.list)
+
+atimeX.list$measurements[, {
+  res.dt <- result[[1]]$line_search_result
+  s <- res.dt$step.size
+  data.table(
+    min.step=s[2],
+    best.step=res.dt[which.min(aum), step.size],
+    max.step=max(s))
+}, by=N]
+
 ```
