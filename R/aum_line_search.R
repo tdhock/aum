@@ -130,7 +130,8 @@ plot.aum_line_search <- function
 ### ignored.
 ){
   step.size <- aum <- slope <- intercept <- auc.after <- auc <- 
-    min.step.size <- max.step.size <- NULL
+    min.step.size <- max.step.size <- aum.slope.after <- n.data <-
+      aum.after <- value <- NULL
   ## Above to suppress CRAN check NOTE.
   aum.df <- data.frame(panel="aum", x$line_search_result)
   last <- x$line_search_result[.N]
@@ -217,6 +218,9 @@ aum_line_search_grid <- structure(function
   add.breakpoints=FALSE
 ### add breakpoints from exact search to grid search.
 ){
+  . <- fp_diff <- fn_diff <- fn_before <- fp_before <-
+    FPR_before <- TPR_before <- FPR <- TPR <- NULL
+  ## Above for CRAN check NOTE.
   L <- aum_line_search(error.diff.df, feature.mat, weight.vec, pred.vec, maxIterations)
   step.size <- unique(sort(c(
     if(add.breakpoints)L$line_search_result$step.size,
@@ -296,7 +300,7 @@ aum_line_search_grid <- structure(function
         step.size, Inf, label=sprintf(
           "%d,%d", intersections, intervals)),
         vjust=1.1,
-        data=data.table(
+        data=data.frame(
           panel="threshold", bin.line.search$line_search_result))
   }
 
@@ -310,7 +314,8 @@ plot.aum_line_search_grid <- function
   ...
 ### ignored.
 ){
-  step.size <- aum <- slope <- intercept <- search <- NULL
+  auc.after <- min.step.size <- max.step.size <- auc <- value <-
+    step.size <- aum <- slope <- intercept <- search <- NULL
   ## Above to suppress CRAN check NOTE.
   aum.df <- data.frame(
     search="exact", panel="aum", x$line_search_result)

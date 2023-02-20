@@ -4,3 +4,4 @@ build.sh
 ^codecov\.yml$
 ^\.github$
 .travis.yml
+tests.RData

@@ -78,7 +78,7 @@ if(require("ggplot2")){
       step.size, Inf, label=sprintf(
         "\%d,\%d", intersections, intervals)),
       vjust=1.1,
-      data=data.table(
+      data=data.frame(
         panel="threshold", bin.line.search$line_search_result))
 }
 
