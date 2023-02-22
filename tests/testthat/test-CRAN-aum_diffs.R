@@ -123,33 +123,42 @@ test_that("rate works for one ex", {
   expect_equal(simple.rates$fn_diff, c(-0.8, -0.2))
 })
 
-test_that("rate works for two ex", {
-  two.df <- rbind(
-    data.frame(
+test_that("rate works for three ex, one with no diffs", {
+  four.dt <- rbind(
+    data.table(
       example="one",
       min.lambda=c(0, exp(1:3)),
       fp=c(10,4,4,0),
-      fn=c(0,2,2,10)),
-    data.frame(
+      fn=c(0,2,2,8)),
+    data.table(
       example="two",
       min.lambda=c(0, exp(4:6)),
       fp=c(1,0,0,0),
       fn=c(0,0,0,1)),
-    data.frame(
+    data.table(
       example="three",
       min.lambda=c(0, exp(44:46)),
       fp=c(100,0,0,0),
-      fn=c(0,0,0,100)))
-  (count.diffs <- aum::aum_diffs_penalty(two.df, c("one","two"), denominator="count"))
+      fn=c(0,0,0,100)),
+    data.table(
+      example="constant",
+      min.lambda=c(0,1),
+      fp=c(9,9),
+      fn=c(1,1)))
+  three.ids <- c("one","constant","two")
+  (count.diffs <- aum::aum_diffs_penalty(four.dt, three.ids, denominator="count"))
   expected.counts <- data.frame(
-    example=c(0,0,1,1),
+    example=c(0,0,2,2),
     pred=c(-3,-1,-6,-4),
     fp_diff=c(4,6,0,1),
-    fn_diff=c(-8,-2,-1,0))
+    fn_diff=c(-6,-2,-1,0))
   expect_equal(data.frame(count.diffs), expected.counts)
-  (rate.diffs <- aum::aum_diffs_penalty(two.df, c("one","two"), denominator="rate"))
+  (rate.diffs <- aum::aum_diffs_penalty(four.dt, three.ids, denominator="rate"))
+  ex.only <- four.dt[three.ids,on="example"]
+  total.fp <- ex.only[min.lambda==0, sum(fp)]
+  total.fn <- sum(ex.only[, .SD[which.max(min.lambda)], by=example]$fn)
   (expected.rates <- with(expected.counts, data.frame(
-    example, pred, fp_diff=fp_diff/sum(fp_diff), fn_diff=-fn_diff/sum(fn_diff))))
+    example, pred, fp_diff=fp_diff/total.fp, fn_diff=-fn_diff/total.fn)))
   expect_equal(data.frame(rate.diffs), expected.rates)
 })
 
