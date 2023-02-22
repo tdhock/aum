@@ -126,23 +126,28 @@ test_that("rate works for one ex", {
 test_that("rate works for two ex", {
   two.df <- rbind(
     data.frame(
-      example=1L,
+      example="one",
       min.lambda=c(0, exp(1:3)),
       fp=c(10,4,4,0),
       fn=c(0,2,2,10)),
     data.frame(
-      example=2L,
+      example="two",
       min.lambda=c(0, exp(4:6)),
       fp=c(1,0,0,0),
-      fn=c(0,0,0,1)))
-  (count.diffs <- aum::aum_diffs_penalty(two.df, denominator="count"))
+      fn=c(0,0,0,1)),
+    data.frame(
+      example="three",
+      min.lambda=c(0, exp(44:46)),
+      fp=c(100,0,0,0),
+      fn=c(0,0,0,100)))
+  (count.diffs <- aum::aum_diffs_penalty(two.df, c("one","two"), denominator="count"))
   expected.counts <- data.frame(
-    example=c(1,1,2,2),
+    example=c(0,0,1,1),
     pred=c(-3,-1,-6,-4),
     fp_diff=c(4,6,0,1),
     fn_diff=c(-8,-2,-1,0))
   expect_equal(data.frame(count.diffs), expected.counts)
-  (rate.diffs <- aum::aum_diffs_penalty(two.df, denominator="rate"))
+  (rate.diffs <- aum::aum_diffs_penalty(two.df, c("one","two"), denominator="rate"))
   (expected.rates <- with(expected.counts, data.frame(
     example, pred, fp_diff=fp_diff/sum(fp_diff), fn_diff=-fn_diff/sum(fn_diff))))
   expect_equal(data.frame(rate.diffs), expected.rates)

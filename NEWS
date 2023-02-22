@@ -1,5 +1,11 @@
 TODOs
 
+2023.2.21
+
+aum_diffs_penalty now correctly handles denominator="rate" (previously
+there could be problems if there are more examples in error table than
+in pred.name.vec).
+
 2023.2.15
 
 Ties are now handled correctly in line
