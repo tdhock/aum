@@ -213,7 +213,7 @@ aum_diffs_penalty <- structure(function
     total <- err.dt[, .(
       fp=max(fp), 
       fn=max(fn)
-    ), by=example]
+    )]
   }
   with(err.dt, {
     is.end <- min.lambda == 0
