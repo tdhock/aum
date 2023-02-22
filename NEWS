@@ -8,14 +8,16 @@ intersections and intervals, which are greater than 1 if there are any
 ties. Also new column q.size contains the number of step sizes in the
 queue at each iteration.
 
-bugfix in aum_diffs_penalty(denominator="rate"), which previously
-incorrectly normalized for each example, but now correctly normalizes
-based on the total error over all examples.
-
 2023.2.3
 
 aum_line_search$line_search_result contains new columns aucAtStep and
 aucAfterStep.
+
+2022.12.8
+
+bugfix in aum_diffs_penalty(denominator="rate"), which previously
+incorrectly normalized for each example, but now correctly normalizes
+based on the total error over all examples.
 
 2022.12.7
 
