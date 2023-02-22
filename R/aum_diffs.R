@@ -222,7 +222,6 @@ aum_diffs_penalty <- structure(function
     keep <- fp_diff != 0 | fn_diff != 0
     if(identical(denominator, "rate")){
       fp.denom <- sum(fp_diff)
-      print(fp.denom)
       fn.denom <- -sum(fn_diff)
     }else{
       fp.denom <- 1
