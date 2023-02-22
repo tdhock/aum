@@ -134,31 +134,28 @@ test_that("rate works for three ex, one with no diffs", {
       example="two",
       min.lambda=c(0, exp(4:6)),
       fp=c(1,0,0,0),
-      fn=c(0,0,0,1)),
+      fn=c(0,0,0,2)),
     data.table(
       example="three",
       min.lambda=c(0, exp(44:46)),
       fp=c(100,0,0,0),
       fn=c(0,0,0,100)),
     data.table(
-      example="constant",
-      min.lambda=c(0,1),
-      fp=c(9,9),
+      example="constantFN",
+      min.lambda=c(0,exp(9)),
+      fp=c(11,2),
       fn=c(1,1)))
-  three.ids <- c("one","constant","two")
+  three.ids <- c("one","constantFN","two")
   (count.diffs <- aum::aum_diffs_penalty(four.dt, three.ids, denominator="count"))
   expected.counts <- data.frame(
-    example=c(0,0,2,2),
-    pred=c(-3,-1,-6,-4),
-    fp_diff=c(4,6,0,1),
-    fn_diff=c(-6,-2,-1,0))
+    example=c(0,0,1,2,2),
+    pred=c(-3,-1,-9,-6,-4),
+    fp_diff=c(4,6,9,0,1),
+    fn_diff=c(-6,-2,0,-2,0))
   expect_equal(data.frame(count.diffs), expected.counts)
   (rate.diffs <- aum::aum_diffs_penalty(four.dt, three.ids, denominator="rate"))
-  ex.only <- four.dt[three.ids,on="example"]
-  total.fp <- ex.only[min.lambda==0, sum(fp)]
-  total.fn <- sum(ex.only[, .SD[which.max(min.lambda)], by=example]$fn)
   (expected.rates <- with(expected.counts, data.frame(
-    example, pred, fp_diff=fp_diff/total.fp, fn_diff=-fn_diff/total.fn)))
+    example, pred, fp_diff=fp_diff/sum(fp_diff), fn_diff=-fn_diff/sum(fn_diff))))
   expect_equal(data.frame(rate.diffs), expected.rates)
 })
 
