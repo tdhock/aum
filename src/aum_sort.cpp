@@ -36,6 +36,7 @@ int aum_sort
       return ERROR_AUM_SORT_ALL_PREDICTIONS_SHOULD_BE_FINITE;
     }
   }
+  double fp_diff_thresh=INFINITY, fn_diff_thresh=INFINITY;
   for(int err_i=0; err_i<err_N; err_i++){
     int example = err_example[err_i];
     if(example >= pred_N){
@@ -43,6 +44,14 @@ int aum_sort
     }
     if(example < 0){
       return ERROR_AUM_SORT_EXAMPLE_SHOULD_BE_NON_NEGATIVE;
+    }
+    double abs_fp_diff = abs(err_fp_diff[err_i]);
+    if(abs_fp_diff != 0 && abs_fp_diff < fp_diff_thresh){
+      fp_diff_thresh = abs_fp_diff;
+    }
+    double abs_fn_diff = abs(err_fn_diff[err_i]);
+    if(abs_fn_diff != 0 && abs_fn_diff < fn_diff_thresh){
+      fn_diff_thresh = abs_fn_diff;
     }
     out_thresh[err_i] = err_pred[err_i] - pred_vec[example];
     out_indices[err_i] = err_i;
@@ -56,6 +65,7 @@ int aum_sort
   double cumsum, cumsum_prev;
   const double *fp_or_fn_diff;
   double *out_this, *out_prev;
+  double fp_or_fn_thresh;
   int first, err;
   for(int err_type=0; err_type<2; err_type++){
     // Compute cumsums before AND after each threshold - fp starts at
@@ -63,6 +73,7 @@ int aum_sort
     if(err_type == 0){//fn
       first = err_N - 1;
       sign = -1;
+      fp_or_fn_thresh = fn_diff_thresh;
       fp_or_fn_diff = err_fn_diff;
       out_this = out_fn_before;
       out_prev = out_fn_after;
@@ -70,6 +81,7 @@ int aum_sort
     }else{//fp
       first = 0;
       sign = 1;
+      fp_or_fn_thresh = fp_diff_thresh;
       fp_or_fn_diff = err_fp_diff;
       out_this = out_fp_after;
       out_prev = out_fp_before;
@@ -82,7 +94,7 @@ int aum_sort
       int rank_i = first + sign*i;
       int err_i = out_indices[rank_i];
       cumsum += sign * fp_or_fn_diff[err_i];
-      if(cumsum < 0){
+      if(cumsum < -fp_or_fn_thresh){
 	return err;
       }
       bool write_out = true;
