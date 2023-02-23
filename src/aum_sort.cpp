@@ -2,6 +2,17 @@
 #include <math.h>//isfinite
 #include <algorithm>//std::sort
 
+double get_min_thresh(const double *diff_vec, int err_N){
+  double thresh = INFINITY;
+  for(int err_i=0; err_i<err_N; err_i++){
+    double abs_diff = abs(diff_vec[err_i]);
+    if(abs_diff != 0 && abs_diff < thresh){
+      thresh = abs_diff;
+    }
+  }
+  return thresh/2;
+}
+
 // Main function for computing Area Under Minimum of False Positives
 // and False Negatives. All pointer arguments must be arrays (of size
 // indicated in comments below) that are allocated before calling
@@ -36,7 +47,6 @@ int aum_sort
       return ERROR_AUM_SORT_ALL_PREDICTIONS_SHOULD_BE_FINITE;
     }
   }
-  double fp_diff_thresh=INFINITY, fn_diff_thresh=INFINITY;
   for(int err_i=0; err_i<err_N; err_i++){
     int example = err_example[err_i];
     if(example >= pred_N){
@@ -44,14 +54,6 @@ int aum_sort
     }
     if(example < 0){
       return ERROR_AUM_SORT_EXAMPLE_SHOULD_BE_NON_NEGATIVE;
-    }
-    double abs_fp_diff = abs(err_fp_diff[err_i]);
-    if(abs_fp_diff != 0 && abs_fp_diff < fp_diff_thresh){
-      fp_diff_thresh = abs_fp_diff;
-    }
-    double abs_fn_diff = abs(err_fn_diff[err_i]);
-    if(abs_fn_diff != 0 && abs_fn_diff < fn_diff_thresh){
-      fn_diff_thresh = abs_fn_diff;
     }
     out_thresh[err_i] = err_pred[err_i] - pred_vec[example];
     out_indices[err_i] = err_i;
@@ -67,6 +69,9 @@ int aum_sort
   double *out_this, *out_prev;
   double fp_or_fn_thresh;
   int first, err;
+  double
+    fp_diff_thresh=get_min_thresh(err_fp_diff, err_N),
+    fn_diff_thresh=get_min_thresh(err_fn_diff, err_N);
   for(int err_type=0; err_type<2; err_type++){
     // Compute cumsums before AND after each threshold - fp starts at
     // zero and iterates forward, fn ends at zero and iterates backward.
