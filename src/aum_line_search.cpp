@@ -14,26 +14,35 @@ Point intersect
     return Point{x, y};
 }
 
-class Intervals {
+class IntervalGroup {
+  // one group of lines that intersect at a particular step size and
+  // threshold. There are usually only two lines involved (1
+  // interval), but with ties there could be more.
   public:
-  int high_id, high_rank, low_rank, n_intervals;
+  int high_id,
+    high_rank, low_rank, //before step size of intersection.
+    n_intervals;
   vector<int> *rank_from_id;
-  Intervals(int high_id_, int n_intervals_, vector<int> *rank_from_id_){
+  IntervalGroup(int high_id_, int n_intervals_, vector<int> *rank_from_id_){
+    //on initialization we store the ID and put it in the map.
     high_id = high_id_;
     n_intervals = n_intervals_;
     rank_from_id = rank_from_id_;
   }
   void set_ranks(){
+    //called when it is popped out of the map, for convenience when we
+    //do the FP/FN/M updates (which are indexed in the rank space, not
+    //ID space).
     high_rank = (*rank_from_id)[high_id];
     low_rank = high_rank - n_intervals;
   }
 };
 
-class ThreshIntervals {
+class GroupsAtStepSize {
   public:
-  map<double,Intervals> thresh_intervals_map;
+  map<double,IntervalGroup> thresh_intervals_map;
   vector<int> *id_from_rank, *rank_from_id;
-  ThreshIntervals
+  GroupsAtStepSize
   (double thresh, 
    int high_rank,
    vector<int> *id_from_rank_,
@@ -43,11 +52,11 @@ class ThreshIntervals {
     rank_from_id = rank_from_id_;
     int high_id = (*id_from_rank)[high_rank];
     thresh_intervals_map.insert
-      (pair<double,Intervals>
-       (thresh, Intervals(high_id,1,rank_from_id)));
+      (pair<double,IntervalGroup>
+       (thresh, IntervalGroup(high_id,1,rank_from_id)));
   }
   void set_intervals_ranks(){
-    for//intersection points. (tie-breaking type 1)
+    for//thresholds at a given step size.
       (auto intervals_it = thresh_intervals_map.begin(); 
        intervals_it != thresh_intervals_map.end();
        intervals_it++){
@@ -55,9 +64,13 @@ class ThreshIntervals {
     }
   }
   void add_interval(double thresh, int new_high_rank){
+    // for a new line at thresh, either update an existing
+    // IntervalGroup, or insert a new one. TODO remove map/lower_bound
+    // and use unordered_map/find. https://cplusplus.com/reference/unordered_map/unordered_map/find/
     auto it_after_or_same = thresh_intervals_map.lower_bound(thresh);
     int new_high_id = (*id_from_rank)[new_high_rank];
     if(it_after_or_same != thresh_intervals_map.end()){
+      //thresh already present in map.
       if(it_after_or_same->first == thresh){//same
         int old_high_rank = (*rank_from_id)[it_after_or_same->second.high_id];
         int old_low_rank = old_high_rank-it_after_or_same->second.n_intervals;
@@ -65,7 +78,7 @@ class ThreshIntervals {
           it_after_or_same->second.high_id = new_high_id;
         }else if(old_low_rank!=new_high_rank){
           return;
-          //printf("WARNING: in add_interval, trying to alter existing/old Intervals (%d,%d) but new_high_rank=%d is not adjacent, this only happens when same as existing, no need to add again.\n", old_low_rank, old_high_rank, new_high_rank);
+          //printf("WARNING: in add_interval, trying to alter existing/old IntervalGroup (%d,%d) but new_high_rank=%d is not adjacent, this only happens when same as existing, no need to add again.\n", old_low_rank, old_high_rank, new_high_rank);
         }
         it_after_or_same->second.n_intervals++;
         return;
@@ -73,8 +86,8 @@ class ThreshIntervals {
     }
     thresh_intervals_map.insert
       (it_after_or_same, 
-       pair<double,Intervals>
-       (thresh, Intervals(new_high_id,1,rank_from_id)));
+       pair<double,IntervalGroup>
+       (thresh, IntervalGroup(new_high_id,1,rank_from_id)));
   }
 };
 
@@ -111,7 +124,7 @@ class TotalAUC {
     aum_slope = 0;
   }
   void update_all(){
-    update(1, lineCount, 1.0);
+    update(0, lineCount-1, 1.0);
   }
   void zero_update_all(){
     zero();
@@ -135,20 +148,31 @@ class TotalAUC {
     return FPR_diff*TPR_sum/2;
   }
   void update
-  (int first_rightRank, 
-   int last_rightRank,
-   double sign){
+  (int first_leftRank, 
+   int last_leftRank,
+   double sign //+1 to add, -1 to subtract AUC.
+   ){
+    //leftRank/rightRank refer to ROC FPR/TPR plot, where we compute
+    //each component of AUC by summing area of triangle and rectangle
+    //under pair of ROC points
+    //leftRank/rightRank. first_rightRank/last_rightRank are the
+    //first/last points involved in the update.
     for
-      (int rightRank=first_rightRank; 
-       rightRank <= last_rightRank; 
-       rightRank++){
-      int leftRank=rightRank-1;
-      double roc_change = sign*get_auc(leftRank, rightRank);
-      value += roc_change;
+      (int leftRank=first_leftRank; 
+       leftRank <= last_leftRank; 
+       leftRank++){
+      double auc_change = sign*get_auc(leftRank, leftRank+1);
+      value += auc_change;
     }
+    // above we have one more iteration for the ROC AUC update, than
+    // we do for the AUM slope update below. For example, moving one
+    // point on the ROC curve involves subtracting then adding two FPR
+    // intervals of AUC, whereas that corresponds to only one changed
+    // interval on the step size vs threshold plot for updating AUM
+    // slope.
     for
-      (int rank=first_rightRank-1; 
-       rank < last_rightRank; 
+      (int rank=first_leftRank; 
+       rank < last_leftRank+1; 
        rank++){
       int id = (*id_from_rank)[rank];
       double rank_slope = slope_from_id[id];
@@ -157,17 +181,17 @@ class TotalAUC {
       aum_slope += slope_update;
     }
   }
-  double action(ThreshIntervals *TI_ptr, double sign){
+  double handle_interval_groups(GroupsAtStepSize *groups_ptr, double sign){
     double more_auc_at_step = 0;
-    for//intersection points. (tie-breaking type 1)
-      (auto TI_it = TI_ptr->thresh_intervals_map.begin(); 
-       TI_it != TI_ptr->thresh_intervals_map.end();
-       TI_it++){
+    for//thresholds at a given step size.
+      (auto groups_it = groups_ptr->thresh_intervals_map.begin(); 
+       groups_it != groups_ptr->thresh_intervals_map.end();
+       groups_it++){
       int low_rank, high_rank;
-      high_rank=TI_it->second.high_rank+1;
-      low_rank=TI_it->second.low_rank+1;
+      high_rank=groups_it->second.high_rank;
+      low_rank=groups_it->second.low_rank;
       update(low_rank, high_rank, sign);
-      more_auc_at_step += get_auc(low_rank-1, high_rank);
+      more_auc_at_step += get_auc(low_rank, high_rank+1);
     }
     return more_auc_at_step;
   }
@@ -175,7 +199,7 @@ class TotalAUC {
 
 class Queue {
   public:
-  map<double,ThreshIntervals> step_ThreshIntervals_map;
+  map<double,GroupsAtStepSize> step_GroupsAtStepSize_map;
   vector<int> *id_from_rank, *rank_from_id;
   const double *intercept_from_id, *slope_from_id;
   Queue
@@ -189,13 +213,13 @@ class Queue {
     slope_from_id = slope_from_id_;
   }
   void insert_step
-  (map<double,ThreshIntervals>::iterator it,
+  (map<double,GroupsAtStepSize>::iterator it,
    Point point, 
    int high_rank){
-    step_ThreshIntervals_map.insert
+    step_GroupsAtStepSize_map.insert
       (it, 
-       pair<double,ThreshIntervals>
-       (point.x, ThreshIntervals
+       pair<double,GroupsAtStepSize>
+       (point.x, GroupsAtStepSize
         (point.y, high_rank, id_from_rank, rank_from_id)));
   }
   void maybe_add_intersection(double prevStepSize, int high_rank){
@@ -206,9 +230,9 @@ class Queue {
        slope_from_id[low_id], slope_from_id[high_id]);
     // intersection points with infinite values aren't real intersections
     if (intersectionPoint.isFinite() && intersectionPoint.x > prevStepSize) {
-      auto it = step_ThreshIntervals_map.lower_bound(intersectionPoint.x);
+      auto it = step_GroupsAtStepSize_map.lower_bound(intersectionPoint.x);
       if
-        (it == step_ThreshIntervals_map.end() || 
+        (it == step_GroupsAtStepSize_map.end() || 
          it->first != intersectionPoint.x){
         insert_step(it, intersectionPoint, high_rank);
       }else{
@@ -313,31 +337,31 @@ int lineSearch
   aucAfterStepVec[0] = total_auc.value;
   intersectionCountVec[0] = 0;
   intervalCountVec[0] = 0;
-  qSizeVec[0]=queue.step_ThreshIntervals_map.size();
+  qSizeVec[0]=queue.step_GroupsAtStepSize_map.size();
   for//iterations/step sizes
     (int iteration = 1; 
-     iteration < maxIterations && !queue.step_ThreshIntervals_map.empty(); 
+     iteration < maxIterations && !queue.step_GroupsAtStepSize_map.empty(); 
      iteration++){
-    auto TI_it = queue.step_ThreshIntervals_map.begin();
-    double stepSize = TI_it->first;
+    auto groups_it = queue.step_GroupsAtStepSize_map.begin();
+    double stepSize = groups_it->first;
     aum += total_auc.aum_slope * (stepSize - lastStepSize);
     stepSizeVec[iteration] = stepSize;
     aumVec[iteration] = aum;
-    ThreshIntervals TI = TI_it->second;
-    TI.set_intervals_ranks();
-    double more_auc_at_step = total_auc.action(&TI, -1.0);
+    GroupsAtStepSize groups = groups_it->second;
+    groups.set_intervals_ranks();
+    double more_auc_at_step = total_auc.handle_interval_groups(&groups, -1.0);
     double auc_after_remove = total_auc.value;
-    intersectionCountVec[iteration] = TI.thresh_intervals_map.size();
+    intersectionCountVec[iteration] = groups.thresh_intervals_map.size();
     intervalCountVec[iteration] = 0;
-    for//intersection points. (tie-breaking type 1)
-      (auto intervals_it = TI.thresh_intervals_map.begin(); 
-       intervals_it != TI.thresh_intervals_map.end();
+    for//thresholds at a given step size.
+      (auto intervals_it = groups.thresh_intervals_map.begin(); 
+       intervals_it != groups.thresh_intervals_map.end();
        intervals_it++){
       double FPhi_tot=0, FPlo_tot=0, FNhi_tot=0, FNlo_tot=0;
       intervalCountVec[iteration] += intervals_it->second.n_intervals;
       int lowest_rank = intervals_it->second.low_rank;
       int highest_rank = intervals_it->second.high_rank;
-      for//adjacent lines in an intersection point. (tie-breaking type 2)
+      for//intervals within a given threshold.
         (int low_rank=lowest_rank; 
          low_rank<highest_rank; 
          low_rank++){
@@ -355,7 +379,7 @@ int lineSearch
         FNhi_tot += deltaFn[top_high_id];
         FNhi[top_high_rank] = FNhi_tot;
       }
-      for//adjacent lines in an intersection point. (tie-breaking type 2)
+      for//intervals within a given threshold.
         (int low_rank=lowest_rank; 
          low_rank<highest_rank; 
          low_rank++){
@@ -375,16 +399,16 @@ int lineSearch
         rank_from_id[id] = rank;
       }
     }
-    total_auc.action(&TI, 1.0);
+    total_auc.handle_interval_groups(&groups, 1.0);
     aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
     aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
     aucAfterStepVec[iteration] = total_auc.value;
     // queue the next actions/intersections.
-    queue.step_ThreshIntervals_map.erase(TI_it);
+    queue.step_GroupsAtStepSize_map.erase(groups_it);
     int prev_high_rank = 0;
-    for//intersection points. (tie-breaking type 1)
-      (auto intervals_it = TI.thresh_intervals_map.begin(); 
-       intervals_it != TI.thresh_intervals_map.end();
+    for//thresholds at a given step size.
+      (auto intervals_it = groups.thresh_intervals_map.begin(); 
+       intervals_it != groups.thresh_intervals_map.end();
        intervals_it++){
       int highest_rank = intervals_it->second.high_rank;
       int higherRank = highest_rank + 1;
@@ -397,7 +421,7 @@ int lineSearch
       }
       prev_high_rank = highest_rank;
     }
-    qSizeVec[iteration]=queue.step_ThreshIntervals_map.size();
+    qSizeVec[iteration]=queue.step_GroupsAtStepSize_map.size();
     lastStepSize = stepSize;
   }
   return 0;//SUCCESS
