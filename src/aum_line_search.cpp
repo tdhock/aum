@@ -245,10 +245,10 @@ class Queue {
 int lineSearch
 (const double *intercept_from_id,
  const double *slope_from_id,
- int lineCount,
+ const int lineCount,
  const double *deltaFp,
  const double *deltaFn,
- int maxIterations,
+ const int maxIterations,
  double *stepSizeVec,
  double *aumVec, 
  double *aumSlopeAfterStepVec,
@@ -271,24 +271,19 @@ int lineSearch
   Queue queue
     (&id_from_rank, &rank_from_id, intercept_from_id, slope_from_id);
   // start by queueing intersections of every line and the line after it
-  for
-    (int lineIndexLowBeforeIntersect = 0;
-     lineIndexLowBeforeIntersect < lineCount - 1;
-     lineIndexLowBeforeIntersect++) {
-    int lineIndexHighBeforeIntersect = lineIndexLowBeforeIntersect + 1;
-    if
-      (intercept_from_id[lineIndexLowBeforeIntersect] >
-       intercept_from_id[lineIndexHighBeforeIntersect]) {
+  for(int low_rank = 0; low_rank < lineCount - 1; low_rank++) {
+    int high_rank = low_rank + 1;
+    if(intercept_from_id[low_rank] > intercept_from_id[high_rank]) {
       return ERROR_LINE_SEARCH_INTERCEPTS_SHOULD_BE_NON_DECREASING;
     }
-    if
-      ((intercept_from_id[lineIndexLowBeforeIntersect] ==
-        intercept_from_id[lineIndexHighBeforeIntersect]) &&
-       (slope_from_id[lineIndexLowBeforeIntersect] >=
-        slope_from_id[lineIndexHighBeforeIntersect])) {
+    bool same_intercept = 
+      intercept_from_id[low_rank] == intercept_from_id[high_rank];
+    bool high_slope_not_larger = 
+      slope_from_id[low_rank] >= slope_from_id[high_rank];
+    if(same_intercept && high_slope_not_larger) {
       return ERROR_LINE_SEARCH_SLOPES_SHOULD_BE_INCREASING_FOR_EQUAL_INTERCEPTS;
     }
-    queue.maybe_add_intersection(0, lineIndexHighBeforeIntersect);
+    queue.maybe_add_intersection(0, high_rank);
   }
   double lastStepSize = 0.0;
   double aum = 0.0;
@@ -385,10 +380,8 @@ int lineSearch
          low_rank++){
         // (∆FP of top line) - (∆FP of bottom line)
         int high_rank = low_rank+1;
-        double deltaFpDiff = FPhi[high_rank] - FPlo[high_rank];
-        double deltaFnDiff = FNhi[high_rank] - FNlo[high_rank];
-        FP[high_rank] += deltaFpDiff;
-        FN[high_rank] += deltaFnDiff;
+        FP[high_rank] += FPhi[high_rank] - FPlo[high_rank];
+        FN[high_rank] += FNhi[high_rank] - FNlo[high_rank];
         M[high_rank] = min(FP[high_rank], FN[high_rank]);
       }
       reverse

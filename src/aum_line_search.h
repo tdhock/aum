@@ -15,10 +15,10 @@ struct Point {
 int lineSearch(
         const double *intercept,
         const double *slope,
-        int lineCount,
+        const int lineCount,
         const double *deltaFp,
         const double *deltaFn,
-        int maxIterations,
+        const int maxIterations,
         //inputs above, size of outputs below = maxIterations.
         double *stepSizeVec,
         double *aumVec,
