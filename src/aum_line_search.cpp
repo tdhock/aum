@@ -38,11 +38,11 @@ class IntervalGroup {
   }
 };
 
-class GroupsAtStepSize {
+class IntervalColumn {
   public:
   map<double,IntervalGroup> thresh_intervals_map;
   vector<int> *id_from_rank, *rank_from_id;
-  GroupsAtStepSize
+  IntervalColumn
   (double thresh, 
    int high_rank,
    vector<int> *id_from_rank_,
@@ -181,7 +181,7 @@ class TotalAUC {
       aum_slope += slope_update;
     }
   }
-  double handle_interval_groups(GroupsAtStepSize *groups_ptr, double sign){
+  double handle_interval_groups(IntervalColumn *groups_ptr, double sign){
     double more_auc_at_step = 0;
     for//thresholds at a given step size.
       (auto groups_it = groups_ptr->thresh_intervals_map.begin(); 
@@ -199,7 +199,7 @@ class TotalAUC {
 
 class Queue {
   public:
-  map<double,GroupsAtStepSize> step_GroupsAtStepSize_map;
+  map<double,IntervalColumn> step_IntervalColumn_map;
   vector<int> *id_from_rank, *rank_from_id;
   const double *intercept_from_id, *slope_from_id;
   Queue
@@ -213,13 +213,13 @@ class Queue {
     slope_from_id = slope_from_id_;
   }
   void insert_step
-  (map<double,GroupsAtStepSize>::iterator it,
+  (map<double,IntervalColumn>::iterator it,
    Point point, 
    int high_rank){
-    step_GroupsAtStepSize_map.insert
+    step_IntervalColumn_map.insert
       (it, 
-       pair<double,GroupsAtStepSize>
-       (point.x, GroupsAtStepSize
+       pair<double,IntervalColumn>
+       (point.x, IntervalColumn
         (point.y, high_rank, id_from_rank, rank_from_id)));
   }
   void maybe_add_intersection(double prevStepSize, int high_rank){
@@ -230,9 +230,9 @@ class Queue {
        slope_from_id[low_id], slope_from_id[high_id]);
     // intersection points with infinite values aren't real intersections
     if (intersectionPoint.isFinite() && intersectionPoint.x > prevStepSize) {
-      auto it = step_GroupsAtStepSize_map.lower_bound(intersectionPoint.x);
+      auto it = step_IntervalColumn_map.lower_bound(intersectionPoint.x);
       if
-        (it == step_GroupsAtStepSize_map.end() || 
+        (it == step_IntervalColumn_map.end() || 
          it->first != intersectionPoint.x){
         insert_step(it, intersectionPoint, high_rank);
       }else{
@@ -337,17 +337,17 @@ int lineSearch
   aucAfterStepVec[0] = total_auc.value;
   intersectionCountVec[0] = 0;
   intervalCountVec[0] = 0;
-  qSizeVec[0]=queue.step_GroupsAtStepSize_map.size();
+  qSizeVec[0]=queue.step_IntervalColumn_map.size();
   for//iterations/step sizes
     (int iteration = 1; 
-     iteration < maxIterations && !queue.step_GroupsAtStepSize_map.empty(); 
+     iteration < maxIterations && !queue.step_IntervalColumn_map.empty(); 
      iteration++){
-    auto groups_it = queue.step_GroupsAtStepSize_map.begin();
+    auto groups_it = queue.step_IntervalColumn_map.begin();
     double stepSize = groups_it->first;
     aum += total_auc.aum_slope * (stepSize - lastStepSize);
     stepSizeVec[iteration] = stepSize;
     aumVec[iteration] = aum;
-    GroupsAtStepSize groups = groups_it->second;
+    IntervalColumn groups = groups_it->second;
     groups.set_intervals_ranks();
     double more_auc_at_step = total_auc.handle_interval_groups(&groups, -1.0);
     double auc_after_remove = total_auc.value;
@@ -404,7 +404,7 @@ int lineSearch
     aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
     aucAfterStepVec[iteration] = total_auc.value;
     // queue the next actions/intersections.
-    queue.step_GroupsAtStepSize_map.erase(groups_it);
+    queue.step_IntervalColumn_map.erase(groups_it);
     int prev_high_rank = 0;
     for//thresholds at a given step size.
       (auto intervals_it = groups.thresh_intervals_map.begin(); 
@@ -421,7 +421,7 @@ int lineSearch
       }
       prev_high_rank = highest_rank;
     }
-    qSizeVec[iteration]=queue.step_GroupsAtStepSize_map.size();
+    qSizeVec[iteration]=queue.step_IntervalColumn_map.size();
     lastStepSize = stepSize;
   }
   return 0;//SUCCESS
