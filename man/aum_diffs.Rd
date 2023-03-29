@@ -24,7 +24,7 @@ value "pred" for example/observation "example". This can be used
 for computing Area Under Minimum via \code{\link{aum}} function, and plotted via
 \code{\link{plot.aum_diffs}}.}
 
-\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
+\author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 

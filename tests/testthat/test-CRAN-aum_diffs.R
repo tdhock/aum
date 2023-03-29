@@ -107,7 +107,7 @@ test_that("error if min.lambda repeated", {
   fixed=TRUE)
 })
 
-test_that("rate works", {
+test_that("rate works for one ex", {
   simple.df <- data.frame(
     example=1L,
     min.lambda=c(0, exp(1:3)),
@@ -121,6 +121,42 @@ test_that("rate works", {
   expect_equal(simple.rates$pred, c(-3, -1))
   expect_equal(simple.rates$fp_diff, c(0.4, 0.6))
   expect_equal(simple.rates$fn_diff, c(-0.8, -0.2))
+})
+
+test_that("rate works for three ex, one with no diffs", {
+  four.dt <- rbind(
+    data.table(
+      example="one",
+      min.lambda=c(0, exp(1:3)),
+      fp=c(10,4,4,0),
+      fn=c(0,2,2,8)),
+    data.table(
+      example="two",
+      min.lambda=c(0, exp(4:6)),
+      fp=c(1,0,0,0),
+      fn=c(0,0,0,2)),
+    data.table(
+      example="three",
+      min.lambda=c(0, exp(44:46)),
+      fp=c(100,0,0,0),
+      fn=c(0,0,0,100)),
+    data.table(
+      example="constantFN",
+      min.lambda=c(0,exp(9)),
+      fp=c(11,2),
+      fn=c(1,1)))
+  three.ids <- c("one","constantFN","two")
+  (count.diffs <- aum::aum_diffs_penalty(four.dt, three.ids, denominator="count"))
+  expected.counts <- data.frame(
+    example=c(0,0,1,2,2),
+    pred=c(-3,-1,-9,-6,-4),
+    fp_diff=c(4,6,9,0,1),
+    fn_diff=c(-6,-2,0,-2,0))
+  expect_equal(data.frame(count.diffs), expected.counts)
+  (rate.diffs <- aum::aum_diffs_penalty(four.dt, three.ids, denominator="rate"))
+  (expected.rates <- with(expected.counts, data.frame(
+    example, pred, fp_diff=fp_diff/sum(fp_diff), fn_diff=-fn_diff/sum(fn_diff))))
+  expect_equal(data.frame(rate.diffs), expected.rates)
 })
 
 test_that("aum_errors works even if input not sorted", {

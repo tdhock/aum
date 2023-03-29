@@ -1,3 +1,6 @@
+inst/atime/*.png
+inst/atime/tests.RData
+Rplots.pdf
 .Rhistory
 *.dll
 *~

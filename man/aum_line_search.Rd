@@ -18,7 +18,7 @@ example-specific error functions.}
 
 \value{List of class aum_line_search.}
 
-\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
+\author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 
@@ -42,6 +42,7 @@ nb.err <- with(neuroblastomaProcessed$errors, data.frame(
 if(requireNamespace("ggplot2"))plot(nb.diffs)
 nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=c(1,-1))
 if(requireNamespace("ggplot2"))plot(nb.line.search)
+aum::aum_line_search(nb.diffs, pred.vec=c(1,-1)-c(1,-1)*0.5)
 
 ## Example 3: all changepoint examples, with linear model.
 X.sc <- scale(neuroblastomaProcessed$feature.mat)
@@ -52,8 +53,32 @@ weight.vec <- rep(0, ncol(X.keep))
 nb.weight.search <- aum::aum_line_search(
   nb.diffs,
   feature.mat=X.keep,
-  weight.vec=weight.vec)
+  weight.vec=weight.vec, 
+  maxIterations = 200)
 if(requireNamespace("ggplot2"))plot(nb.weight.search)
+
+## Alternate viz with x=iteration instead of step size.
+nb.weight.full <- aum::aum_line_search(
+  nb.diffs,
+  feature.mat=X.keep,
+  weight.vec=weight.vec, 
+  maxIterations = 1000)
+library(data.table)
+weight.result.tall <- suppressWarnings(melt(
+  nb.weight.full$line_search_result[, iteration:=1:.N][, .(
+    iteration, auc, q.size,
+    log10.step.size=log10(step.size),
+    log10.aum=log10(aum))],
+  id.vars="iteration"))
+if(require(ggplot2)){
+  ggplot()+
+    geom_point(aes(
+      iteration, value),
+      shape=1,
+      data=weight.result.tall)+
+    facet_grid(variable ~ ., scales="free")+
+    scale_y_continuous("")
+}
 
 ## Example 4: many changepoint examples, optimize predictions.
 all.ids <- rownames(neuroblastomaProcessed$feature.mat)
@@ -61,67 +86,18 @@ all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
 current.pred <- rep(0, length(all.ids))
 nb.all.search <- aum::aum_line_search(
   all.diffs, pred.vec=current.pred, maxIterations=2e5)
-library(data.table)
-all.result <- data.table(nb.all.search$line_search_result)
-some.result <- all.result[as.integer(seq(1, .N, l=100))]
-plot(log10(aum) ~ step.size, some.result)
-
-## Example 5: all changepoint examples, with noise features and linear model.
-signal.features <- neuroblastomaProcessed$feature.mat[,c("log2.n","log.hall")]
-n.noise <- 20
-set.seed(1)
-noise.features <- matrix(
-  rnorm(n.noise*nrow(signal.features)),
-  nrow(signal.features), n.noise)
-X.sc <- scale(cbind(signal.features, noise.features))
-keep <- apply(is.finite(X.sc), 2, all)
-X.keep <- X.sc[,keep]
-subtrain.i <- sample(1:nrow(X.keep), nrow(X.keep)/2)
-index.list <- list(
-  subtrain=subtrain.i,
-  validation=-subtrain.i)
-diff.list <- lapply(index.list, function(set.i){
-  aum::aum_diffs_penalty(nb.err, rownames(X.keep)[set.i])
-})
-weight.vec <- rep(0, ncol(X.keep))
-improvement <- old.aum <- Inf
-iteration <- 0
-loss.dt.list <- list()
-while(improvement > 1e-4){
-  iteration <- iteration+1
-  valid.list <- aum::aum(
-    diff.list$validation, X.keep[index.list$validation,] \%*\% weight.vec)
-  nb.weight.search <- aum::aum_line_search(
-    diff.list$subtrain,
-    maxIterations=100,
-    feature.mat=X.keep[index.list$subtrain,],
-    weight.vec=weight.vec)
-  loss.dt.list[[iteration]] <- data.table(
-    iteration,
-    set=c("subtrain", "validation"),
-    aum=c(nb.weight.search$aum, valid.list$aum))
-  exact.dt <- data.table(nb.weight.search$line_search_result)
-  exact.dt[, kink := .I/.N]
-  best.row <- exact.dt[which.min(aum)]
-  if(interactive())cat(sprintf(
-    "iteration=\%4d aum=\%.6f step=\%.6f kink=\%f\\n",
-    iteration, best.row$aum, best.row$step.size, best.row$kink))
-  improvement <- old.aum-best.row$aum
-  old.aum <- best.row$aum
-  weight.vec <- weight.vec-best.row$step.size*nb.weight.search$gradient_weight
-}
-loss.dt <- do.call(rbind, loss.dt.list)
-min.dt <- loss.dt[, .SD[which.min(aum)], by=set]
-if(requireNamespace("ggplot2")){
-  ggplot2::ggplot()+
-    ggplot2::geom_line(ggplot2::aes(
-      iteration, aum, color=set),
-      data=loss.dt)+
-    ggplot2::geom_point(ggplot2::aes(
-      iteration, aum, color=set),
+some.wide <- data.table(nb.all.search$line_search_result)[
+  as.integer(seq(1, .N, l=100))
+][, log10.aum := log10(aum)]
+some.tall <- melt(some.wide, measure.vars = c("auc", "log10.aum"))
+if(require(ggplot2)){
+  ggplot()+
+    geom_point(aes(
+      step.size, value),
       shape=1,
-      data=min.dt)+
-    ggplot2::scale_y_log10()
+      data=some.tall)+
+    facet_grid(variable ~ ., scales="free")+
+    theme_bw()
 }
 
 }

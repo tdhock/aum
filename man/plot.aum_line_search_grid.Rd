@@ -12,7 +12,7 @@ functions, along with grid points for checking.}
 
 \value{ggplot.}
 
-\author{Toby Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
+\author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
 
 

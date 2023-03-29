@@ -18,14 +18,25 @@ aum_linear_model_cv <- structure(function
 ### this value (positive real number). Default NULL means to use the
 ### value which is ten times smaller than the min non-zero absolute
 ### value of FP and FN diffs in diff.dt.
-  n.folds=3
+  n.folds=3,
 ### Number of cross-validation folds to average over to determine the
 ### best number of steps of gradient descent.
+  initial.weight.fun=NULL
+### Function for computing initial weight vector in gradient descent.
 ){
+  . <- fp_diff <- fn_diff <- example <- fp <- fn <- fold <- pred <- 
+    valid.fold <- sd <- aum_mean <- NULL
+  ## Above to suppress CRAN NOTE.
+  example.totals <- diff.dt[, .(
+    fn=sum(fn_diff),
+    fp=sum(fp_diff)
+  ), by=example]
+  
   if(is.null(improvement.thresh)){
     abs.diff <- diff.dt[, abs(c(fp_diff, fn_diff))]
     not.zero <- abs.diff[0 < abs.diff]
     improvement.thresh <- min(not.zero)/10
+    ## TODO: does this heuristic generalize well to other data sets?
   }
   X.sc <- scale(feature.mat)
   keep <- apply(is.finite(X.sc), 2, all)
@@ -34,14 +45,24 @@ aum_linear_model_cv <- structure(function
   train.diffs <- list(subtrain=diff.dt)
   overfit.model <- aum_linear_model(
     train.features, train.diffs,
+    initial.weight.fun=initial.weight.fun,
     improvement.thresh=improvement.thresh,
     maxIterations=maxIterations)
   uniq.folds <- 1:n.folds
-  fold.vec <- sample(rep(uniq.folds, l=nrow(X.keep)))
+  zero.counts <- colSums(example.totals[, .(fn,fp)]==0)
+  minority <- names(zero.counts)[which.max(zero.counts)]
+  minority.zero <- example.totals[[minority]]==0
+  example.totals[, fold := sample(
+    rep(sample(uniq.folds), l=.N)
+  ), by=minority.zero]
+  minority.folds <- example.totals[minority.zero==FALSE, length(unique(fold))]
+  if(minority.folds < n.folds){
+    stop(sprintf("not enough data for %d-fold cross-validation, because there are only %d examples for which there are non-zero values for the minority diff, %s", n.folds, minority.folds, minority))
+  }
   fold.loss <- data.table(valid.fold=uniq.folds)[, {
-    logical.list <- list(
-      subtrain=fold.vec!=valid.fold,
-      validation=fold.vec==valid.fold)
+    logical.list <- with(example.totals, list(
+      subtrain=fold!=valid.fold,
+      validation=fold==valid.fold))
     diff.list <- lapply(logical.list, function(is.set){
       some.indices <- which(is.set)
       all.indices <- rep(NA, nrow(X.keep))
@@ -55,6 +76,7 @@ aum_linear_model_cv <- structure(function
     })
     valid.model <- aum_linear_model(
       feature.list, diff.list,
+      initial.weight.fun=initial.weight.fun,
       max.steps=max(overfit.model$loss$step.number),
       maxIterations=maxIterations)
     valid.model$loss
@@ -67,6 +89,7 @@ aum_linear_model_cv <- structure(function
   best.row <- set.loss[set=="validation"][which.min(aum_mean)]
   final.model <- aum_linear_model(
     train.features, train.diffs,
+    initial.weight.fun=initial.weight.fun,
     max.steps=best.row$step.number,
     maxIterations=maxIterations)
   final.model$fold.loss <- fold.loss
@@ -87,133 +110,16 @@ aum_linear_model_cv <- structure(function
 ### selecting the best number of gradient descent steps.
 }, ex=function(){
 
-  ## learn a model for a real changepoint data set.
-  data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
-  nb.err <- with(neuroblastomaProcessed$errors, data.frame(
-    example=paste0(profile.id, ".", chromosome),
-    min.lambda,
-    max.lambda,
-    fp, fn))
-  signal.features <- neuroblastomaProcessed$feature.mat[,c("log2.n","log.hall")]
-  n.noise <- 40
+  ## simulated binary classification problem.
+  N.rows <- 100
+  N.cols <- 20
   set.seed(1)
-  noise.features <- matrix(
-    rnorm(n.noise*nrow(signal.features)),
-    nrow(signal.features), n.noise)
-  input.features <- cbind(-54, 1, signal.features, noise.features)
-  nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(input.features))
-  model <- aum::aum_linear_model_cv(input.features, nb.diffs)
+  feature.mat <- matrix(rnorm(N.rows*N.cols), N.rows, N.cols)
+  unknown.score <- feature.mat[,1]*2.1 + rnorm(N.rows)
+  label.vec <- ifelse(unknown.score > 3, 1, 0)
+  diffs.dt <- aum::aum_diffs_binary(label.vec)
+  model <- aum::aum_linear_model_cv(feature.mat, diffs.dt)
   plot(model)
-
-  ## verify that the predictions are the same using either scaled or
-  ## original features.
-  rbind(
-    predict.on.inputs=t(head(
-      predict(model, input.features))),
-    scale.then.predict=t(head(
-      scale(input.features)[,model$keep] %*% model$weight.vec +
-        model$intercept)))
-
-  ## verify that the learned intercept results in min errors, at thresh=0.
-  train.list <- aum::aum(nb.diffs, predict(model, input.features))
-  plot(fp_before+fn_before ~ thresh, train.list$total_error)
-
-  ## use rates instead of counts for computing AUM.
-  rate.diffs <- aum::aum_diffs_penalty(nb.err, rownames(input.features), denominator = "rate")
-  set.seed(1)
-  rate.model <- aum::aum_linear_model_cv(input.features, rate.diffs)
-  plot(rate.model)
-
-  ## alternative visualization including error bands and min loss.
-  if(requireNamespace("ggplot2")){
-    ggplot2::ggplot()+
-      ggplot2::geom_ribbon(ggplot2::aes(
-        step.number, ymin=aum_mean-aum_sd, ymax=aum_mean+aum_sd, fill=set),
-        alpha=0.5,
-        data=rate.model$set.loss)+
-      ggplot2::geom_line(ggplot2::aes(
-        step.number, aum_mean, color=set),
-        data=rate.model$set.loss)+
-      ggplot2::geom_point(ggplot2::aes(
-        step.number, aum_mean, color=set),
-        data=rate.model$set.loss[, .SD[which.min(aum_mean)], by=set])+
-      ggplot2::scale_y_log10()
-  }
-  
-  ## alternative visualization showing each fold.
-  if(requireNamespace("ggplot2")){
-    ggplot2::ggplot()+
-      ggplot2::geom_line(ggplot2::aes(
-        step.number, aum, color=set),
-        data=rate.model$fold.loss)+
-      ggplot2::geom_point(ggplot2::aes(
-        step.number, aum, color=set),
-        data=rate.model$fold.loss[
-        , .SD[which.min(aum)], by=.(valid.fold, set)])+
-      ggplot2::scale_y_log10()+
-      ggplot2::facet_grid(. ~ valid.fold, labeller = "label_both")
-  }
-
-  ## compute ROC curves.
-  pred.list <- list(
-    aum.count=predict(model, input.features),
-    aum.rate=predict(rate.model, input.features),
-    zero=rep(0, nrow(input.features)))
-  roc.dt <- data.table(pred.name=names(pred.list))[, {
-    aum::aum(rate.diffs, pred.list[[pred.name]])$total_error
-  }, by=pred.name][, tp_before := 1-fn_before][]
-  setkey(roc.dt, pred.name, thresh)
-  if(requireNamespace("ggplot2")){
-    pred.dt <- roc.dt[0 < thresh, .SD[1], by=pred.name]
-    ggplot2::ggplot()+
-      ggplot2::ggtitle("Train set ROC curves, dot for predicted threshold")+
-      ggplot2::geom_path(ggplot2::aes(
-        fp_before, tp_before, color=pred.name),
-        data=roc.dt)+
-      ggplot2::geom_point(ggplot2::aes(
-        fp_before, tp_before, color=pred.name),
-        shape=21,
-        fill="white",
-        data=pred.dt)+
-      ggplot2::coord_equal()+
-      ggplot2::xlab("False Positive Rate")+
-      ggplot2::ylab("True Positive Rate")
-  }
-  ## first and last row of each pred.
-  roc.dt[, .SD[c(1,.N)], by=pred.name]
-
-  ## visualize area under min.
-  roc.dt[, min_before := pmin(fp_before, fn_before)]
-  roc.tall <- nc::capture_melt_single(
-    roc.dt, 
-    error.type="fp|fn|min",
-    "_before",
-    value.name="error.value")
-  err.sizes <- c(
-    fp=3,
-    fn=2,
-    min=1)
-  err.colors <- c(
-    fp="red",
-    fn="deepskyblue",
-    min="black")
-  if(requireNamespace("ggplot2")){
-    ggplot2::ggplot()+
-      ggplot2::ggtitle("Train set AUM in green")+
-      ggplot2::theme_bw()+
-      ggplot2::geom_step(ggplot2::aes(
-        thresh, error.value, color=error.type, size=error.type),
-        data=roc.tall)+
-      ggplot2::geom_polygon(ggplot2::aes(
-        thresh, min_before),
-        fill="green",
-        data=roc.dt)+
-      ggplot2::facet_grid(pred.name ~ ., labeller="label_both")+
-      ggplot2::xlab("Constant added to predicted values")+
-      ggplot2::ylab("Error rate")+
-      ggplot2::scale_color_manual(values=err.colors)+
-      ggplot2::scale_size_manual(values=err.sizes)
-  }
   
 })
 
@@ -247,11 +153,20 @@ aum_linear_model <- function
 ### non-negative real number: keep doing gradient descent while the
 ### improvement in AUM is greater than this number (specify either
 ### this or max.steps, not both).
-  maxIterations=nrow(feature.list$subtrain)
+  maxIterations=nrow(feature.list$subtrain),
 ### max number of iterations of exact line search, default is number
 ### of subtrain examples.
+  initial.weight.fun=NULL
+### Function for computing initial weights, default NULL means use a
+### random standard normal vector.
 ){
-  weight.vec <- rep(0, ncol(feature.list$subtrain))
+  fp_before <- fn_before <- thresh <- NULL
+  ## Above to suppress CRAN NOTE.
+  weight.vec <- if(is.null(initial.weight.fun)){
+    rnorm(ncol(feature.list$subtrain))
+  }else{
+    initial.weight.fun(feature.list$subtrain, diff.list$subtrain)
+  }
   improvement <- old.aum <- Inf
   step.number <- 0
   loss.dt.list <- list()

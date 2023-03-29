@@ -2,6 +2,17 @@
 #include <math.h>//isfinite
 #include <algorithm>//std::sort
 
+double get_min_thresh(const double *diff_vec, int err_N){
+  double thresh = INFINITY;
+  for(int err_i=0; err_i<err_N; err_i++){
+    double abs_diff = abs(diff_vec[err_i]);
+    if(abs_diff != 0 && abs_diff < thresh){
+      thresh = abs_diff;
+    }
+  }
+  return thresh/2;
+}
+
 // Main function for computing Area Under Minimum of False Positives
 // and False Negatives. All pointer arguments must be arrays (of size
 // indicated in comments below) that are allocated before calling
@@ -56,13 +67,18 @@ int aum_sort
   double cumsum, cumsum_prev;
   const double *fp_or_fn_diff;
   double *out_this, *out_prev;
+  double fp_or_fn_thresh;
   int first, err;
+  double
+    fp_diff_thresh=get_min_thresh(err_fp_diff, err_N),
+    fn_diff_thresh=get_min_thresh(err_fn_diff, err_N);
   for(int err_type=0; err_type<2; err_type++){
     // Compute cumsums before AND after each threshold - fp starts at
     // zero and iterates forward, fn ends at zero and iterates backward.
     if(err_type == 0){//fn
       first = err_N - 1;
       sign = -1;
+      fp_or_fn_thresh = fn_diff_thresh;
       fp_or_fn_diff = err_fn_diff;
       out_this = out_fn_before;
       out_prev = out_fn_after;
@@ -70,6 +86,7 @@ int aum_sort
     }else{//fp
       first = 0;
       sign = 1;
+      fp_or_fn_thresh = fp_diff_thresh;
       fp_or_fn_diff = err_fp_diff;
       out_this = out_fp_after;
       out_prev = out_fp_before;
@@ -82,7 +99,7 @@ int aum_sort
       int rank_i = first + sign*i;
       int err_i = out_indices[rank_i];
       cumsum += sign * fp_or_fn_diff[err_i];
-      if(cumsum < 0){
+      if(cumsum < -fp_or_fn_thresh){
 	return err;
       }
       bool write_out = true;
