@@ -111,12 +111,12 @@ aum_linear_model_cv <- structure(function
 }, ex=function(){
 
   ## simulated binary classification problem.
-  N.rows <- 100
-  N.cols <- 20
+  N.rows <- 50
+  N.cols <- 2
   set.seed(1)
   feature.mat <- matrix(rnorm(N.rows*N.cols), N.rows, N.cols)
   unknown.score <- feature.mat[,1]*2.1 + rnorm(N.rows)
-  label.vec <- ifelse(unknown.score > 3, 1, 0)
+  label.vec <- ifelse(unknown.score > 0, 1, 0)
   diffs.dt <- aum::aum_diffs_binary(label.vec)
   model <- aum::aum_linear_model_cv(feature.mat, diffs.dt)
   plot(model)

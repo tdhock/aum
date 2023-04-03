@@ -1,6 +1,7 @@
 Changes in version 2023.4.3
 
 - reformat NEWS, for CRAN.
+- faster examples for aum_linear_model_cv and aum_line_search.
 
 Changes in version 2023.3.31
 

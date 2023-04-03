@@ -99,26 +99,6 @@ aum_line_search <- structure(function
       facet_grid(variable ~ ., scales="free")+
       scale_y_continuous("")
   }
-
-  ## Example 4: many changepoint examples, optimize predictions.
-  all.ids <- rownames(neuroblastomaProcessed$feature.mat)
-  all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
-  current.pred <- rep(0, length(all.ids))
-  nb.all.search <- aum::aum_line_search(
-    all.diffs, pred.vec=current.pred, maxIterations=2e5)
-  some.wide <- data.table(nb.all.search$line_search_result)[
-    as.integer(seq(1, .N, l=100))
-  ][, log10.aum := log10(aum)]
-  some.tall <- melt(some.wide, measure.vars = c("auc", "log10.aum"))
-  if(require(ggplot2)){
-    ggplot()+
-      geom_point(aes(
-        step.size, value),
-        shape=1,
-        data=some.tall)+
-      facet_grid(variable ~ ., scales="free")+
-      theme_bw()
-  }
   
 })
 
