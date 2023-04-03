@@ -24,7 +24,7 @@ library(data.table)
 nb.err <- data.table(neuroblastomaProcessed$errors)
 nb.err[, example := paste0(profile.id, ".", chromosome)]
 nb.X <- neuroblastomaProcessed$feature.mat
-max.log <- if(interactive())3.5 else 3
+max.log <- if(interactive())4 else 2
 (N.pred.vec <- as.integer(10^seq(1, max.log, by=0.5)))
 timing.dt.list <- list()
 for(N.pred in N.pred.vec){

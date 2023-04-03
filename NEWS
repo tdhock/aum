@@ -1,5 +1,9 @@
 TODOs
 
+2023.3.31
+
+Line search C++ code review, exclude speed and line search vignettes from CRAN.
+
 2023.2.21
 
 aum_diffs_penalty now correctly handles denominator="rate" (previously

@@ -1,11 +1,11 @@
-Area Under the Minimum of False Positives and Negatives
+Area Under the Minimum (AUM) of False Positives and Negatives
 
 | [[file:tests/testthat][tests]]    | [[https://github.com/tdhock/aum/actions][https://github.com/tdhock/aum/workflows/R-CMD-check/badge.svg]]
 | [[https://github.com/jimhester/covr][coverage]] | [[https://coveralls.io/github/tdhock/aum?branch=master][https://coveralls.io/repos/tdhock/aum/badge.svg?branch=main&service=github]] |
 
-This R package provides an efficient C++ implementation of the AUM and
-its directional derivatives, which can be used to (indirectly)
-optimize Area Under the ROC Curve (AUC) in supervised binary
+This R package provides an efficient C++ implementation of the [[https://arxiv.org/abs/2107.01285][AUM]],
+which can be used as a surrogate loss for 
+optimizing Area Under the ROC Curve (AUC) in supervised binary
 classification and changepoint detection problems.
 
 ** Installation
@@ -19,14 +19,16 @@ classification and changepoint detection problems.
 
 ** Usage
 
-The code below creates an aum_diffs data table which represents error
+*** Converting binary labels to aum_diffs
+
+The code below creates an =aum_diffs= data table which represents error
 functions for two labeled examples in binary classification.
 
 #+begin_src R
-> (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
-   example pred fp_diff fn_diff
-1:       0    0       1       0
-2:       1    0       0      -1
+  > (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
+     example pred fp_diff fn_diff
+  1:       0    0       1       0
+  2:       1    0       0      -1
 #+end_src
 
 - The first row above means there is a false positive difference of 1
@@ -39,6 +41,8 @@ functions for two labeled examples in binary classification.
   with a positive label in binary classification (1 false negative if
   predicted value less than 0, changes down to no errors for larger
   predicted values).
+
+*** Computing AUM from aum_diffs table and prediction vector
 
 Next we assume predicted values of 0 for both examples, and then
 compute Area Under the Minimum (AUM) of False Positives and False
@@ -70,12 +74,25 @@ The result above is a named list with two elements.
   example is negative (entry 2,1), indicating that a decreased
   prediction would result in an increased AUM.
 
+*** Changepoint detection
+
+See =?aum::aum_diffs_penalty= for documentation about how to compute
+the AUM for supervised penalty learning in changepoint detection problems.
+
+*** Line search
+
+An exact line search can be computed using time which is log-linear in
+the number of step sizes, see =?aum::aum_line_search= for a single
+line search, and =?aum::aum_linear_model_cv= for using the line search
+in each step of gradient descent when learning a linear model.
+
 ** Related Work
 
 - [[https://github.com/tdhock/penaltyLearning/blob/master/R/ROChange.R][penaltyLearning::ROChange]] provides an alternative implementation of
-  AUM and its directional derivatives in R data.table code (as well as
-  AUC computation).
+  AUM and its directional derivatives in R data.table code (slower,
+  also includes ROC curve computation).
 - [[https://cloud.r-project.org/web/packages/aum/vignettes/speed-comparison.html][The speed comparison vignette]] has an alternative implementation of
   AUM and its directional derivatives in base R code.
-- [[https://github.com/tdhock/max-generalized-auc][max-generalized-auc]] repo provides code for making the figures in https://arxiv.org/abs/2107.01285
+- [[https://github.com/tdhock/max-generalized-auc][max-generalized-auc]] repo provides code for making the figures in
+  https://arxiv.org/abs/2107.01285
 
