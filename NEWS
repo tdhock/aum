@@ -1,3 +1,7 @@
+Changes in version 2023.4.7
+
+- aum_line_search now accepts maxIterations="min.aum" or "max.auc".
+
 Changes in version 2023.4.3
 
 - reformat NEWS, for CRAN.

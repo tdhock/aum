@@ -1,7 +1,7 @@
 Package: aum
 Type: Package
 Title: Area Under Minimum of False Positives and Negatives
-Version: 2023.4.3
+Version: 2023.4.7
 Authors@R: c(
     person("Toby Dylan", "Hocking",
      email="toby.hocking@r-project.org",

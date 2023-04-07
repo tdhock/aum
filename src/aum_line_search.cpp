@@ -1,4 +1,5 @@
 #include "aum_line_search.h"
+#define EPSILON 1e-6
 using namespace std;
 
 bool Point::isFinite() const {
@@ -333,27 +334,30 @@ int lineSearch
   intersectionCountVec[0] = 0;
   intervalCountVec[0] = 0;
   qSizeVec[0]=queue.step_IntervalColumn_map.size();
-  for//iterations/step sizes
-    (int iteration = 1; 
-     iteration < maxIterations && !queue.step_IntervalColumn_map.empty(); 
-     iteration++){
+  bool done = false;
+  int iteration=0;
+  double min_aum=aumVec[0], max_auc=aucAfterStepVec[0];
+  double min_aum_first_step=0, max_auc_first_step=0;
+  int total_intersections=0, total_intervals=0;
+  while(1){
+    iteration++;
+    if(iteration==maxIterations || queue.step_IntervalColumn_map.empty()){
+      return 0;
+    }
     auto groups_it = queue.step_IntervalColumn_map.begin();
     double stepSize = groups_it->first;
     aum += total_auc.aum_slope * (stepSize - lastStepSize);
-    stepSizeVec[iteration] = stepSize;
-    aumVec[iteration] = aum;
     IntervalColumn groups = groups_it->second;
     groups.set_intervals_ranks();
     double more_auc_at_step = total_auc.handle_interval_groups(&groups, -1.0);
     double auc_after_remove = total_auc.value;
-    intersectionCountVec[iteration] = groups.thresh_intervals_map.size();
-    intervalCountVec[iteration] = 0;
+    int interval_count = 0;
     for//thresholds at a given step size.
       (auto intervals_it = groups.thresh_intervals_map.begin(); 
        intervals_it != groups.thresh_intervals_map.end();
        intervals_it++){
       double FPhi_tot=0, FPlo_tot=0, FNhi_tot=0, FNlo_tot=0;
-      intervalCountVec[iteration] += intervals_it->second.n_intervals;
+      interval_count += intervals_it->second.n_intervals;
       int lowest_rank = intervals_it->second.low_rank;
       int highest_rank = intervals_it->second.high_rank;
       for//intervals within a given threshold.
@@ -393,9 +397,6 @@ int lineSearch
       }
     }
     total_auc.handle_interval_groups(&groups, 1.0);
-    aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
-    aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
-    aucAfterStepVec[iteration] = total_auc.value;
     // queue the next actions/intersections.
     queue.step_IntervalColumn_map.erase(groups_it);
     int prev_high_rank = 0;
@@ -414,7 +415,53 @@ int lineSearch
       }
       prev_high_rank = highest_rank;
     }
-    qSizeVec[iteration]=queue.step_IntervalColumn_map.size();
+    if(maxIterations>=1){
+      stepSizeVec[iteration] = stepSize;
+      aumVec[iteration] = aum;
+      aumSlopeAfterStepVec[iteration] = total_auc.aum_slope;
+      aucAtStepVec[iteration] = auc_after_remove+more_auc_at_step;
+      aucAfterStepVec[iteration] = total_auc.value;
+      intersectionCountVec[iteration] = groups.thresh_intervals_map.size();
+      intervalCountVec[iteration] = interval_count;
+      qSizeVec[iteration]=queue.step_IntervalColumn_map.size();
+    }
+    total_intersections += groups.thresh_intervals_map.size();
+    total_intervals += interval_count;
+    if(aum < min_aum){
+      min_aum = aum;
+      min_aum_first_step = stepSize;
+    }
+    bool found_min = queue.step_IntervalColumn_map.empty() || 
+      aum > min_aum || aum<EPSILON;
+    if(found_min && maxIterations==0){
+      double big_step = (aum>min_aum) ? lastStepSize : stepSize;
+      stepSizeVec[0]=(big_step+min_aum_first_step)/2;
+      aumVec[0]=min_aum;
+      aumSlopeAfterStepVec[0]=INFINITY;
+      aucAtStepVec[0]=INFINITY;
+      aucAfterStepVec[0]=INFINITY;
+      intersectionCountVec[0]=total_intersections;
+      intervalCountVec[0]=total_intervals;
+      qSizeVec[0]=iteration;
+      return 0;
+    }
+    if(total_auc.value > max_auc){
+      max_auc = total_auc.value;
+      max_auc_first_step = stepSize;
+    }
+    bool found_max = queue.step_IntervalColumn_map.empty() || 
+      EPSILON < max_auc-total_auc.value;
+    if(found_max && maxIterations == -1){
+      stepSizeVec[0]=(stepSize+max_auc_first_step)/2;
+      aumVec[0]=-INFINITY;
+      aumSlopeAfterStepVec[0]=-INFINITY;
+      aucAtStepVec[0]=max_auc;
+      aucAfterStepVec[0]=INFINITY;
+      intersectionCountVec[0]=total_intersections;
+      intervalCountVec[0]=total_intervals;
+      qSizeVec[0]=iteration;
+      return 0;
+    }
     lastStepSize = stepSize;
   }
   return 0;//SUCCESS

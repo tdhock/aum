@@ -1,7 +1,10 @@
 \name{aum_line_search}
 \alias{aum_line_search}
 \title{aum line search}
-\description{Exact line search.}
+\description{Exact line search using a C++ STL map (red-black tree) to
+implement a queue of line intersection events. If number of rows
+of \code{error.diff.df} is B, and number of iterations is I, then space
+complexity is O(B) and time complexity is O( (I+B)log B ).}
 \usage{aum_line_search(error.diff.df, 
     feature.mat, weight.vec, 
     pred.vec = NULL, 
@@ -13,10 +16,17 @@ example-specific error functions.}
   \item{weight.vec}{p-vector of numeric linear model coefficients.}
   \item{pred.vec}{N-vector of numeric predicted values. If NULL, \code{feature.mat} and
 \code{weight.vec} will be used to compute predicted values.}
-  \item{maxIterations}{positive int: max number of line search iterations.}
+  \item{maxIterations}{max number of line search iterations, either a positive integer or
+"max.auc" or "min.aum" indicating to keep going until AUC
+decreases or AUM increases.}
 }
 
-\value{List of class aum_line_search.}
+\value{List of class aum_line_search. Element named "line_search_result"
+is a data table with number of rows equal to \code{maxIterations} (if it
+is positive integer, info for all steps, q.size column is number
+of items in queue at each iteration), otherwise 1 (info for the
+best step, q.size column is the total number of items popped off
+the queue).}
 
 \author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 
@@ -78,26 +88,6 @@ if(require(ggplot2)){
       data=weight.result.tall)+
     facet_grid(variable ~ ., scales="free")+
     scale_y_continuous("")
-}
-
-## Example 4: many changepoint examples, optimize predictions.
-all.ids <- rownames(neuroblastomaProcessed$feature.mat)
-all.diffs <- aum::aum_diffs_penalty(nb.err, all.ids)
-current.pred <- rep(0, length(all.ids))
-nb.all.search <- aum::aum_line_search(
-  all.diffs, pred.vec=current.pred, maxIterations=2e5)
-some.wide <- data.table(nb.all.search$line_search_result)[
-  as.integer(seq(1, .N, l=100))
-][, log10.aum := log10(aum)]
-some.tall <- melt(some.wide, measure.vars = c("auc", "log10.aum"))
-if(require(ggplot2)){
-  ggplot()+
-    geom_point(aes(
-      step.size, value),
-      shape=1,
-      data=some.tall)+
-    facet_grid(variable ~ ., scales="free")+
-    theme_bw()
 }
 
 }

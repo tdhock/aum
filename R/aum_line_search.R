@@ -1,5 +1,8 @@
 aum_line_search <- structure(function
-### Exact line search.
+### Exact line search using a C++ STL map (red-black tree) to
+### implement a queue of line intersection events. If number of rows
+### of error.diff.df is B, and number of iterations is I, then space
+### complexity is O(B) and time complexity is O( (I+B)log B ).
 (error.diff.df,
 ### aum_diffs data frame with B rows, one for each breakpoint in
 ### example-specific error functions.
@@ -11,7 +14,9 @@ aum_line_search <- structure(function
 ### N-vector of numeric predicted values. If NULL, feature.mat and
 ### weight.vec will be used to compute predicted values.
   maxIterations=nrow(error.diff.df)
-### positive int: max number of line search iterations.
+### max number of line search iterations, either a positive integer or
+### "max.auc" or "min.aum" indicating to keep going until AUC
+### decreases or AUM increases.
 ){
   . <- fp.diff <- fn.diff <- intercept <- slope <- step.size <- NULL
   ## Above to suppress CRAN NOTE.
@@ -38,11 +43,18 @@ aum_line_search <- structure(function
     fp.diff=sum(fp.diff),
     fn.diff=sum(fn.diff)
   ), keyby=.(intercept, slope)]
+  if(identical(maxIterations, "max.auc"))maxIterations <- -1L
+  if(identical(maxIterations, "min.aum"))maxIterations <- 0L
   line.search.all <- aumLineSearch(L$line_search_input, maxIterations)
   L$line_search_result <- data.table(line.search.all)[0 <= step.size]
   class(L) <- c("aum_line_search", class(L))
   L
-### List of class aum_line_search.
+### List of class aum_line_search. Element named "line_search_result"
+### is a data table with number of rows equal to maxIterations (if it
+### is positive integer, info for all steps, q.size column is number
+### of items in queue at each iteration), otherwise 1 (info for the
+### best step, q.size column is the total number of items popped off
+### the queue).
 }, ex=function(){
 
   ## Example 1: two binary data.
