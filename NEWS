@@ -1,3 +1,7 @@
+Changes in version 2023.4.4
+
+- removed some code to check faster on CRAN.
+
 Changes in version 2023.4.3
 
 - reformat NEWS, for CRAN.
