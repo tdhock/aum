@@ -5,3 +5,5 @@ build.sh
 ^\.github$
 .travis.yml
 tests.RData
+line-search.Rmd
+accuracy-comparison.Rmd

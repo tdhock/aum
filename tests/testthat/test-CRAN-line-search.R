@@ -15,6 +15,17 @@ test_that("error when slope same", {
   }, "slopes should be increasing for equal intercepts")
 })
 
+test_that("error for negative max iterations", {
+  three.intersect <- data.frame(
+    intercept=c(-1,0,1), 
+    slope=c(1, 0, -1),
+    fp.diff=c(0.5,0,0.5), 
+    fn.diff=c(0,-0.5,-0.5))
+  expect_error({
+    aum:::aumLineSearch(three.intersect, maxIterations = -2)
+  }, "maxIterations must be either -1 (first max auc), 0 (first min aum), or positive (run for that many iterations)", fixed=TRUE)
+})
+
 test_that("contrived three way tie computed ok", {
   three.intersect <- data.frame(
     intercept=c(-1,0,1), 

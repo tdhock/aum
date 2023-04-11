@@ -334,7 +334,6 @@ int lineSearch
   intersectionCountVec[0] = 0;
   intervalCountVec[0] = 0;
   qSizeVec[0]=queue.step_IntervalColumn_map.size();
-  bool done = false;
   int iteration=0;
   double min_aum=aumVec[0], max_auc=aucAfterStepVec[0];
   double min_aum_first_step=0, max_auc_first_step=0;
