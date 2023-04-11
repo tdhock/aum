@@ -415,6 +415,7 @@ int lineSearch
       }
       prev_high_rank = highest_rank;
     }
+    // write outputs.
     if(maxIterations>=1){
       stepSizeVec[iteration] = stepSize;
       aumVec[iteration] = aum;
