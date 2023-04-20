@@ -95,4 +95,4 @@ in each step of gradient descent when learning a linear model.
   AUM and its directional derivatives in base R code.
 - [[https://github.com/tdhock/max-generalized-auc][max-generalized-auc]] repo provides code for making the figures in
   https://arxiv.org/abs/2107.01285
-- [[https://tdhock.github.io/blog/2022/torch-auto-grad-non-diff/][A python/torch implementation of AUM]].
+- [[https://tdhock.github.io/blog/2022/torch-auto-grad-non-diff/][A python/torch implementation of AUM for binary classification]].
