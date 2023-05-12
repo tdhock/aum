@@ -15,6 +15,17 @@ test_that("error when slope same", {
   }, "slopes should be increasing for equal intercepts")
 })
 
+test_that("error for negative max iterations", {
+  three.intersect <- data.frame(
+    intercept=c(-1,0,1), 
+    slope=c(1, 0, -1),
+    fp.diff=c(0.5,0,0.5), 
+    fn.diff=c(0,-0.5,-0.5))
+  expect_error({
+    aum:::aumLineSearch(three.intersect, maxIterations = -2)
+  }, "maxIterations must be either -1 (first max auc), 0 (first min aum), or positive (run for that many iterations)", fixed=TRUE)
+})
+
 test_that("contrived three way tie computed ok", {
   three.intersect <- data.frame(
     intercept=c(-1,0,1), 
@@ -188,3 +199,99 @@ test_that("complex real data example", {
   step.dt[, expect_equal(computed, expected)]
 })
 
+test_that("dynamic line search works", {
+  data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
+  nb.err <- with(neuroblastomaProcessed$errors, data.frame(
+    example=paste0(profile.id, ".", chromosome),
+    min.lambda,
+    max.lambda,
+    fp, fn))
+  X.sc <- scale(neuroblastomaProcessed$feature.mat)
+  keep <- apply(is.finite(X.sc), 2, all)
+  X.keep <- X.sc[1:50,keep]
+  weight.vec <- rep(0, ncol(X.keep))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
+  nb.weight.search <- aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec, 
+    maxIterations = 200)
+  nb.weight.search$line_search_result[, `:=`(
+    iteration = .I-1L,
+    cum.intersections=cumsum(intersections),
+    cum.intervals=cumsum(intervals))]
+  ## dynamic min aum.
+  first.min.aum <- aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec, 
+    maxIterations = "min.aum")
+  computed.min.aum <- first.min.aum$line_search_result[, .(
+    iteration=q.size, step.size, aum, intersections, intervals)]
+  expected.min.aum <- nb.weight.search$line_search_result[
+    which.min(aum), .(
+      iteration=iteration+1, step.size, aum, 
+      intersections=cum.intersections+1, intervals=cum.intervals+1)]
+  expect_equal(computed.min.aum, expected.min.aum)
+  ##dynamic max auc.
+  first.max.auc <- aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec, 
+    maxIterations = "max.auc")
+  computed.max.auc <- first.max.auc$line_search_result[, .(
+    iteration=q.size, step.size, auc, intersections, intervals)]
+  i <- nb.weight.search$line_search_result[, which(auc.after==max(auc.after))]
+  expected.auc.step <- nb.weight.search$line_search_result[
+  , mean(step.size[c(min(i),max(i)+1)])]
+  expect_equal(computed.max.auc$step.size, expected.auc.step)
+  if(interactive()&&require(ggplot2))plot(nb.weight.search)+geom_point(aes(step.size,value),color="red",data=rbind(computed.min.aum[, .(step.size, value=aum, panel="aum")], first.max.auc$line_search_result[, .(step.size, value=auc, panel="auc")]))
+})
+
+test_that("dynamic simple ex first min aum line search", {
+  data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
+  nb.err <- with(neuroblastomaProcessed$errors, data.frame(
+    example=paste0(profile.id, ".", chromosome),
+    min.lambda,
+    max.lambda,
+    fp, fn))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("1.1", "4.2")))
+  nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=c(1,-1))
+  max.auc.search <- aum::aum_line_search(
+    nb.diffs, pred.vec=c(1,-1), maxIterations = "max.auc")
+  i <- nb.line.search$line_search_result[, which.max(auc.after)]
+  expect_equal(
+    max.auc.search$line_search_result$step.size, 
+    nb.line.search$line_search_result[, mean(step.size[c(i,i+1)])])
+  min.aum.search <- aum::aum_line_search(
+    nb.diffs, pred.vec=c(1,-1), maxIterations = "min.aum")
+  expected.step <- nb.line.search$line_search_result[
+    which.min(aum), .(step.size, aum)]
+  computed.step <- min.aum.search$line_search_result[
+  , .(step.size, aum)]
+  expect_equal(computed.step, expected.step)
+  if(interactive()&&require(ggplot2))plot(nb.line.search)+geom_point(aes(step.size,value),color="red",data=rbind(computed.step[, .(step.size, value=aum, panel="aum")], max.auc.search$line_search_result[, .(step.size, value=auc, panel="auc")]))
+})
+
+test_that("dynamic ex flat first aum min line search", {
+  data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
+  nb.err <- with(neuroblastomaProcessed$errors, data.frame(
+    example=paste0(profile.id, ".", chromosome),
+    min.lambda,
+    max.lambda,
+    fp, fn))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("513.3", "4.2", "1.1", "2.1")))
+  pred.vec <- c(3,-3, 5, 10)
+  nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=pred.vec, maxIterations = 15)
+  max.auc.search <- aum::aum_line_search(
+    nb.diffs, pred.vec=pred.vec, maxIterations = "max.auc")
+  i <- nb.line.search$line_search_result[, which.max(auc.after)]
+  min.aum.search <- aum::aum_line_search(
+    nb.diffs, pred.vec=pred.vec, maxIterations = "min.aum")
+  expected.step <- nb.line.search$line_search_result[
+    which.min(aum), .(step.size, aum)]
+  computed.step <- min.aum.search$line_search_result[
+  , .(step.size, aum)]
+  expect_equal(computed.step, expected.step)
+  if(interactive()&&require(ggplot2))plot(nb.line.search)+geom_point(aes(step.size,value),color="red",data=rbind(computed.step[, .(step.size, value=aum, panel="aum")], max.auc.search$line_search_result[, .(step.size, value=auc, panel="auc")]))
+})

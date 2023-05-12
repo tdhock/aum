@@ -68,24 +68,27 @@ Rcpp::List aum_sort_interface
 
 // [[Rcpp::export]]
 Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
+    if(maxIterations < -1){
+      Rcpp::stop("maxIterations must be either -1 (first max auc), 0 (first min aum), or positive (run for that many iterations)");
+    }
     // extract columns from dataframe
     Rcpp::NumericVector fpDiff = df["fp.diff"];
     Rcpp::NumericVector fnDiff = df["fn.diff"];
     Rcpp::NumericVector intercept = df["intercept"];
     Rcpp::NumericVector slope = df["slope"];
-    int lineCount = df.nrow();
-    Rcpp::NumericVector stepSizeVec(maxIterations, -1.0);
-    Rcpp::NumericVector aumVec(maxIterations, -1.0);
-    Rcpp::NumericVector aumSlopeAfterStepVec(maxIterations, -100.0);
-    Rcpp::NumericVector aucAtStepVec(maxIterations, -1.0);
-    Rcpp::NumericVector aucAfterStepVec(maxIterations, -1.0);
-    Rcpp::IntegerVector intersectionCountVec(maxIterations, -1);
-    Rcpp::IntegerVector intervalCountVec(maxIterations, -1);
-    Rcpp::IntegerVector qSizeVec(maxIterations, -1);
+    int n_out = maxIterations<1 ? 1 : maxIterations;
+    Rcpp::NumericVector stepSizeVec(n_out, -1.0);
+    Rcpp::NumericVector aumVec(n_out, -1.0);
+    Rcpp::NumericVector aumSlopeAfterStepVec(n_out, -100.0);
+    Rcpp::NumericVector aucAtStepVec(n_out, -1.0);
+    Rcpp::NumericVector aucAfterStepVec(n_out, -1.0);
+    Rcpp::IntegerVector intersectionCountVec(n_out, -1);
+    Rcpp::IntegerVector intervalCountVec(n_out, -1);
+    Rcpp::IntegerVector qSizeVec(n_out, -1);
     int status = lineSearch(
             &intercept[0],
             &slope[0],
-            lineCount,
+            df.nrow(),
             &fpDiff[0],
             &fnDiff[0],
             maxIterations,

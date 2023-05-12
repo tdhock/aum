@@ -16,7 +16,7 @@ test_that("error when there are not enough data", {
 
 label.vec[seq(1, n.folds)] <- 1
 diffs.dt <- aum::aum_diffs_binary(label.vec)
-test_that("error when there are not enough data", {
+test_that("model fitting works if at least as many data as folds", {
   model <- aum::aum_linear_model_cv(feature.mat, diffs.dt, n.folds=n.folds)
   expect_is(model, "aum_linear_model_cv")
 })

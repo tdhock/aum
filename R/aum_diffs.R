@@ -40,7 +40,7 @@ plot.aum_diffs <- function
     ggplot2::geom_segment(ggplot2::aes(
       min.pred, value,
       xend=max.pred, yend=value,
-      color=variable, size=variable),
+      color=variable, linewidth=variable),
       data=err.tall)+
     ggplot2::geom_vline(ggplot2::aes(
       xintercept=pred),
@@ -280,7 +280,7 @@ aum_diffs_penalty <- structure(function
       geom_segment(aes(
         -log(min.lambda), value,
         xend=-log(max.lambda), yend=value,
-        color=variable, size=variable),
+        color=variable, linewidth=variable),
         data=fn.not.zero.tall)+
       geom_point(aes(
         -log(min.lambda), value,
