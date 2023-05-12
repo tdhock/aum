@@ -248,7 +248,7 @@ test_that("dynamic line search works", {
   if(interactive()&&require(ggplot2))plot(nb.weight.search)+geom_point(aes(step.size,value),color="red",data=rbind(computed.min.aum[, .(step.size, value=aum, panel="aum")], first.max.auc$line_search_result[, .(step.size, value=auc, panel="auc")]))
 })
 
-test_that("dynamic simple ex", {
+test_that("dynamic simple ex first min aum line search", {
   data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
   nb.err <- with(neuroblastomaProcessed$errors, data.frame(
     example=paste0(profile.id, ".", chromosome),
@@ -273,7 +273,7 @@ test_that("dynamic simple ex", {
   if(interactive()&&require(ggplot2))plot(nb.line.search)+geom_point(aes(step.size,value),color="red",data=rbind(computed.step[, .(step.size, value=aum, panel="aum")], max.auc.search$line_search_result[, .(step.size, value=auc, panel="auc")]))
 })
 
-test_that("dynamic ex flat aum", {
+test_that("dynamic ex flat first aum min line search", {
   data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
   nb.err <- with(neuroblastomaProcessed$errors, data.frame(
     example=paste0(profile.id, ".", chromosome),
@@ -292,5 +292,6 @@ test_that("dynamic ex flat aum", {
     which.min(aum), .(step.size, aum)]
   computed.step <- min.aum.search$line_search_result[
   , .(step.size, aum)]
+  expect_equal(computed.step, expected.step)
   if(interactive()&&require(ggplot2))plot(nb.line.search)+geom_point(aes(step.size,value),color="red",data=rbind(computed.step[, .(step.size, value=aum, panel="aum")], max.auc.search$line_search_result[, .(step.size, value=auc, panel="auc")]))
 })

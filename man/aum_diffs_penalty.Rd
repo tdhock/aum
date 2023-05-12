@@ -69,7 +69,7 @@ if(require("ggplot2")){
     geom_segment(aes(
       -log(min.lambda), value,
       xend=-log(max.lambda), yend=value,
-      color=variable, size=variable),
+      color=variable, linewidth=variable),
       data=fn.not.zero.tall)+
     geom_point(aes(
       -log(min.lambda), value,

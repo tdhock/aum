@@ -189,26 +189,50 @@ test_that("4fp[2,3] 1fn[-1,-1] 2fp2fn[-2,-1]", {
   expect_equal(L$derivative_mat[3,], c(-2,-1))
 })
 
-models <- diffs(
-  data.frame(fp_diff=0,
-             fn_diff=1,
-             pred   =0))
-predictions <- c(1,0,0)
+bad.fn.diffs <- diffs(data.frame(
+  fp_diff=1,
+  fn_diff=1,
+  pred   =0))
+bad.fn.pred <- c(1,0,0)
 test_that("error for fn<0", {
   expect_error({
-    aum::aum(models, predictions)
+    aum::aum(bad.fn.diffs, bad.fn.pred)
   }, "fn should be non-negative")
 })
 
-models <- diffs(
-  data.frame(fp_diff=-1,
-             fn_diff=0,
-             pred   =0))
-predictions <- c(1,0,0)
+test_that("line search error for negative max FN", {
+  line_search_input <- data.table(
+    fp.diff = bad.fn.diffs$fp_diff, 
+    fn.diff = bad.fn.diffs$fn_diff, 
+    intercept = bad.fn.diffs$pred,
+    slope = bad.fn.diffs$pred,
+    key=c("intercept","slope"))
+  expect_error({
+    aum:::aumLineSearch(line_search_input, 0)
+  }, "max FN should be positive")
+})
+
+bad.fp.diffs <- diffs(data.frame(
+  fp_diff=-1,
+  fn_diff=-1,
+  pred   =0))
+bad.fp.pred <- c(1,0,0)
 test_that("error for fp<0", {
   expect_error({
-    aum::aum(models, predictions)
+    aum::aum(bad.fp.diffs, bad.fp.pred)
   }, "fp should be non-negative")
+})
+
+test_that("line search error for negative max FP", {
+  line_search_input <- data.table(
+    fp.diff = bad.fp.diffs$fp_diff, 
+    fn.diff = bad.fp.diffs$fn_diff, 
+    intercept = bad.fp.diffs$pred,
+    slope = bad.fp.diffs$pred,
+    key=c("intercept","slope"))
+  expect_error({
+    aum:::aumLineSearch(line_search_input, 0)
+  }, "max FP should be positive")
 })
 
 models <- diffs(

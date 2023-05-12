@@ -162,18 +162,18 @@ plot.aum_line_search <- function
       data=hline.df)+
     ggplot2::geom_line(ggplot2::aes(
       step.size, aum),
-      size=1,
+      linewidth=1,
       data=aum.df)+
     ggplot2::geom_segment(ggplot2::aes(
       min.step.size, auc,
       xend=max.step.size, yend=auc),
-      size=1,
+      linewidth=1,
       data=auc.segs)+
     ggplot2::geom_segment(ggplot2::aes(
       step.size, aum,
       xend=step.after, yend=aum.after),
       linetype="dotted",
-      size=1,
+      linewidth=1,
       data=last.seg)+
     ggplot2::geom_point(ggplot2::aes(
       step.size, value),
