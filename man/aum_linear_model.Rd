@@ -7,7 +7,7 @@ descent with exact line search.}
 \usage{aum_linear_model(feature.list, 
     diff.list, max.steps = NULL, 
     improvement.thresh = NULL, 
-    maxIterations = nrow(feature.list$subtrain), 
+    maxIterations = "min.aum", 
     initial.weight.fun = NULL)}
 \arguments{
   \item{feature.list}{List with named elements subtrain and optionally validation, each
@@ -29,10 +29,11 @@ random standard normal vector.}
 \value{Linear model represented as a list of class aum_linear_model with
 named elements: loss is a data table of values for subtrain and
 optionally validation at each step, weight.vec is the final vector
-of weights learned via gradient descent, and intercept is the
-value which results in minimal total error (FP+FN), learned via a
-linear scan over all possible values given the final weight
-vector.}
+of weights learned via gradient descent, intercept is the value
+which results in minimal total error (FP+FN), learned via a linear
+scan over all possible values given the final weight vector, and
+search is a data table with one row for each step (best step size
+and number of iterations of line search).}
 
 \author{Toby Dylan Hocking <toby.hocking@r-project.org> [aut, cre], Jadon Fowler [aut] (Contributed exact line search C++ code)}
 

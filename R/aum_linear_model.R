@@ -8,7 +8,7 @@ aum_linear_model_cv <- structure(function
 ### data table of differences in error functions, from
 ### aum_diffs_penalty or aum_diffs_binary. There should be an example
 ### column with values from 0 to N-1.
-  maxIterations=nrow(feature.mat),
+  maxIterations="min.aum",
 ### max iterations of the exact line search, default is number of examples.
   improvement.thresh=NULL,
 ### before doing cross-validation to learn the number of gradient
@@ -92,6 +92,7 @@ aum_linear_model_cv <- structure(function
     initial.weight.fun=initial.weight.fun,
     max.steps=best.row$step.number,
     maxIterations=maxIterations)
+  final.model$min.valid.aum <- best.row
   final.model$fold.loss <- fold.loss
   final.model$set.loss <- set.loss
   final.model$keep <- keep
@@ -111,15 +112,46 @@ aum_linear_model_cv <- structure(function
 }, ex=function(){
 
   ## simulated binary classification problem.
-  N.rows <- 50
+  N.rows <- 60
   N.cols <- 2
   set.seed(1)
   feature.mat <- matrix(rnorm(N.rows*N.cols), N.rows, N.cols)
   unknown.score <- feature.mat[,1]*2.1 + rnorm(N.rows)
   label.vec <- ifelse(unknown.score > 0, 1, 0)
   diffs.dt <- aum::aum_diffs_binary(label.vec)
-  model <- aum::aum_linear_model_cv(feature.mat, diffs.dt)
-  plot(model)
+
+  ## Default line search keeps doing iterations until increase in AUM.
+  (default.time <- system.time({
+    default.model <- aum::aum_linear_model_cv(feature.mat, diffs.dt)
+  }))
+  plot(default.model)
+  print(default.valid <- default.model[["set.loss"]][set=="validation"])
+  print(default.model[["search"]][, .(step.size, aum, iterations=q.size)])
+  
+  ## Can specify max number of iterations of line search.
+  (small.step.time <- system.time({
+    small.step.model <- aum::aum_linear_model_cv(feature.mat, diffs.dt, maxIterations = N.rows)
+  }))
+  plot(small.step.model)
+  print(small.step.valid <- small.step.model[["set.loss"]][set=="validation"])
+  small.step.model[["search"]][, .(step.size, aum, iterations=q.size)]
+
+  ## Compare number of steps, iterations and time. On my machine small
+  ## step model takes more time/steps, but less iterations in the C++
+  ## line search code.
+  cbind(
+    iterations=c(
+      default=default.model[["search"]][, sum(q.size)],
+      small.step=small.step.model[["search"]][, sum(q.size)]),
+    seconds=c(
+      default.time[["elapsed"]],
+      small.step.time[["elapsed"]]),
+    steps=c(
+      default.model[["min.valid.aum"]][["step.number"]],
+      small.step.model[["min.valid.aum"]][["step.number"]]),
+    min.valid.aum=c(
+      default.model[["min.valid.aum"]][["aum_mean"]],
+      small.step.model[["min.valid.aum"]][["aum_mean"]]))
   
 })
 
@@ -153,7 +185,7 @@ aum_linear_model <- function
 ### non-negative real number: keep doing gradient descent while the
 ### improvement in AUM is greater than this number (specify either
 ### this or max.steps, not both).
-  maxIterations=nrow(feature.list$subtrain),
+  maxIterations="min.aum",
 ### max number of iterations of exact line search, default is number
 ### of subtrain examples.
   initial.weight.fun=NULL
@@ -170,6 +202,7 @@ aum_linear_model <- function
   improvement <- old.aum <- Inf
   step.number <- 0
   loss.dt.list <- list()
+  search.dt.list <- list()
   while({
     search.result <- aum::aum_line_search(
       diff.list$subtrain,
@@ -191,6 +224,7 @@ aum_linear_model <- function
     }
     exact.dt <- data.table(search.result$line_search_result)
     best.row <- exact.dt[which.min(aum)]
+    search.dt.list[[paste(step.number)]] <- best.row
     improvement <- old.aum-best.row$aum
     old.aum <- best.row$aum
     if(!is.null(improvement.thresh)){
@@ -217,15 +251,17 @@ aum_linear_model <- function
       }else{
         mean(thresh[c(best-1,best)])
       }
-    }])
+    }],
+    search=rbindlist(search.dt.list))
   structure(out.list, class="aum_linear_model")
 ### Linear model represented as a list of class aum_linear_model with
 ### named elements: loss is a data table of values for subtrain and
 ### optionally validation at each step, weight.vec is the final vector
-### of weights learned via gradient descent, and intercept is the
-### value which results in minimal total error (FP+FN), learned via a
-### linear scan over all possible values given the final weight
-### vector.
+### of weights learned via gradient descent, intercept is the value
+### which results in minimal total error (FP+FN), learned via a linear
+### scan over all possible values given the final weight vector, and
+### search is a data table with one row for each step (best step size
+### and number of iterations of line search).
 }  
 
 plot.aum_linear_model <- function(x, ...){
