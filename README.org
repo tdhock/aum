@@ -3,7 +3,7 @@ Area Under the Minimum (AUM) of False Positives and Negatives
 | [[file:tests/testthat][tests]]    | [[https://github.com/tdhock/aum/actions][https://github.com/tdhock/aum/workflows/R-CMD-check/badge.svg]]
 | [[https://github.com/jimhester/covr][coverage]] | [[https://coveralls.io/github/tdhock/aum?branch=master][https://coveralls.io/repos/tdhock/aum/badge.svg?branch=main&service=github]] |
 
-This R package provides an efficient C++ implementation of the [[https://arxiv.org/abs/2107.01285][AUM]],
+This R package provides an efficient C++ implementation of the [[https://jmlr.org/papers/v24/21-0751.html][AUM]],
 which can be used as a surrogate loss for 
 optimizing Area Under the ROC Curve (AUC) in supervised binary
 classification and changepoint detection problems.
