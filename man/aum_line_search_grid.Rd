@@ -28,6 +28,8 @@ example-specific error functions.}
 
 \examples{
 
+if(require("data.table"))setDTthreads(1L)#for CRAN check.
+
 ## Example 1: two binary data.
 (bin.diffs <- aum::aum_diffs_binary(c(1,0)))
 if(requireNamespace("ggplot2"))plot(bin.diffs)

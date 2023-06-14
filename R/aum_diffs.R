@@ -242,6 +242,8 @@ aum_diffs_penalty <- structure(function
 ### plot.aum_diffs.
 }, ex=function(){
 
+  if(require("data.table"))setDTthreads(1L)#for CRAN check.
+
   ## Simple synthetic example with two changes in error function.
   simple.df <- data.frame(
     example=1L,

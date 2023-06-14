@@ -57,6 +57,8 @@ aum_line_search <- structure(function
 ### the queue).
 }, ex=function(){
 
+  if(require("data.table"))setDTthreads(1L)#for CRAN check.
+
   ## Example 1: two binary data.
   (bin.diffs <- aum::aum_diffs_binary(c(0,1)))
   if(requireNamespace("ggplot2"))plot(bin.diffs)
@@ -241,6 +243,8 @@ aum_line_search_grid <- structure(function
   L
 ### List of class aum_line_search_grid.
 }, ex=function(){
+
+  if(require("data.table"))setDTthreads(1L)#for CRAN check.
 
   ## Example 1: two binary data.
   (bin.diffs <- aum::aum_diffs_binary(c(1,0)))

@@ -31,6 +31,8 @@ for computing Area Under Minimum via \code{\link{aum}} function, and plotted via
 
 \examples{
 
+if(require("data.table"))setDTthreads(1L)#for CRAN check.
+
 ## Simple synthetic example with two changes in error function.
 simple.df <- data.frame(
   example=1L,
