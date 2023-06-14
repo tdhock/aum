@@ -31,7 +31,6 @@ aum_linear_model_cv <- structure(function
     fn=sum(fn_diff),
     fp=sum(fp_diff)
   ), by=example]
-  
   if(is.null(improvement.thresh)){
     abs.diff <- diff.dt[, abs(c(fp_diff, fn_diff))]
     not.zero <- abs.diff[0 < abs.diff]
@@ -110,6 +109,8 @@ aum_linear_model_cv <- structure(function
 ### tables of loss values for the subtrain/validation sets, used for
 ### selecting the best number of gradient descent steps.
 }, ex=function(){
+
+  if(require("data.table"))setDTthreads(1L)#for CRAN check.
 
   ## simulated binary classification problem.
   N.rows <- 60

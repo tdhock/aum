@@ -42,6 +42,8 @@ selecting the best number of gradient descent steps.}
 
 \examples{
 
+if(require("data.table"))setDTthreads(1L)#for CRAN check.
+
 ## simulated binary classification problem.
 N.rows <- 60
 N.cols <- 2
