@@ -161,13 +161,6 @@ predict.aum_linear_model_cv <- function(object, newdata, ...){
     object$intercept.orig
 }
 
-plot.aum_linear_model_cv <- function(x, ...){
-  lattice::xyplot(
-    aum_mean ~ step.number, x$set.loss, 
-    groups=set, type="l", 
-    auto.key=list(space="right", points=FALSE, lines=TRUE))
-}
-
 aum_linear_model <- function
 ### Learn a linear model with weights that minimize AUM. Weights are
 ### initialized as a vector of zeros, then optimized using gradient
@@ -263,11 +256,32 @@ aum_linear_model <- function
 ### scan over all possible values given the final weight vector, and
 ### search is a data table with one row for each step (best step size
 ### and number of iterations of line search).
+}
+
+### plot subtrain/validation loss.
+set_loss_plot <- function(loss.dt, set.colors=c(subtrain="black", validation="red")){
+  step.number <- NULL
+  if(requireNamespace("ggplot2")){
+    ggplot2::ggplot()+
+      ggplot2::geom_line(ggplot2::aes(
+        step.number, aum, color=set),
+        data=loss.dt)+
+      ggplot2::scale_color_manual(values=set.colors)
+  }else{
+    loss.dt[, plot(step.number, aum, type="n", las=1)]
+    for(Set in names(set.colors)){
+      loss.dt[set==Set, lines(step.number, aum, col=set.colors[Set])]
+    }
+    legend("topright", legend=names(set.colors), col=set.colors, lwd=1)
+  }
 }  
 
+plot.aum_linear_model_cv <- function(x, ...){
+  aum_mean <- NULL
+  ## Above for CRAN checks.
+  set_loss_plot(data.table(x[["set.loss"]])[, aum := aum_mean])
+}
+
 plot.aum_linear_model <- function(x, ...){
-  lattice::xyplot(
-    aum ~ step.number, x$loss, 
-    groups=set, type="l", 
-    auto.key=list(space="right", points=FALSE, lines=TRUE))
+  set_loss_plot(x[["loss"]])
 }

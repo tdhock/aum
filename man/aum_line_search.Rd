@@ -43,53 +43,57 @@ if(requireNamespace("ggplot2"))plot(bin.diffs)
 bin.line.search <- aum::aum_line_search(bin.diffs, pred.vec=c(10,-10))
 if(requireNamespace("ggplot2"))plot(bin.line.search)
 
-## Example 2: two changepoint examples, one with three breakpoints.
-data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
-nb.err <- with(neuroblastomaProcessed$errors, data.frame(
-  example=paste0(profile.id, ".", chromosome),
-  min.lambda,
-  max.lambda,
-  fp, fn))
-(nb.diffs <- aum::aum_diffs_penalty(nb.err, c("1.1", "4.2")))
-if(requireNamespace("ggplot2"))plot(nb.diffs)
-nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=c(1,-1))
-if(requireNamespace("ggplot2"))plot(nb.line.search)
-aum::aum_line_search(nb.diffs, pred.vec=c(1,-1)-c(1,-1)*0.5)
+if(requireNamespace("penaltyLearning")){
 
-## Example 3: all changepoint examples, with linear model.
-X.sc <- scale(neuroblastomaProcessed$feature.mat)
-keep <- apply(is.finite(X.sc), 2, all)
-X.keep <- X.sc[1:50,keep]
-weight.vec <- rep(0, ncol(X.keep))
-(nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
-nb.weight.search <- aum::aum_line_search(
-  nb.diffs,
-  feature.mat=X.keep,
-  weight.vec=weight.vec, 
-  maxIterations = 200)
-if(requireNamespace("ggplot2"))plot(nb.weight.search)
+  ## Example 2: two changepoint examples, one with three breakpoints.
+  data(neuroblastomaProcessed, package="penaltyLearning", envir=environment())
+  nb.err <- with(neuroblastomaProcessed$errors, data.frame(
+    example=paste0(profile.id, ".", chromosome),
+    min.lambda,
+    max.lambda,
+    fp, fn))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("1.1", "4.2")))
+  if(requireNamespace("ggplot2"))plot(nb.diffs)
+  nb.line.search <- aum::aum_line_search(nb.diffs, pred.vec=c(1,-1))
+  if(requireNamespace("ggplot2"))plot(nb.line.search)
+  aum::aum_line_search(nb.diffs, pred.vec=c(1,-1)-c(1,-1)*0.5)
 
-## Alternate viz with x=iteration instead of step size.
-nb.weight.full <- aum::aum_line_search(
-  nb.diffs,
-  feature.mat=X.keep,
-  weight.vec=weight.vec, 
-  maxIterations = 1000)
-library(data.table)
-weight.result.tall <- suppressWarnings(melt(
-  nb.weight.full$line_search_result[, iteration:=1:.N][, .(
-    iteration, auc, q.size,
-    log10.step.size=log10(step.size),
-    log10.aum=log10(aum))],
-  id.vars="iteration"))
-if(require(ggplot2)){
-  ggplot()+
-    geom_point(aes(
-      iteration, value),
-      shape=1,
-      data=weight.result.tall)+
-    facet_grid(variable ~ ., scales="free")+
-    scale_y_continuous("")
+  ## Example 3: all changepoint examples, with linear model.
+  X.sc <- scale(neuroblastomaProcessed$feature.mat)
+  keep <- apply(is.finite(X.sc), 2, all)
+  X.keep <- X.sc[1:50,keep]
+  weight.vec <- rep(0, ncol(X.keep))
+  (nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep)))
+  nb.weight.search <- aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec, 
+    maxIterations = 200)
+  if(requireNamespace("ggplot2"))plot(nb.weight.search)
+
+  ## Alternate viz with x=iteration instead of step size.
+  nb.weight.full <- aum::aum_line_search(
+    nb.diffs,
+    feature.mat=X.keep,
+    weight.vec=weight.vec, 
+    maxIterations = 1000)
+  library(data.table)
+  weight.result.tall <- suppressWarnings(melt(
+    nb.weight.full$line_search_result[, iteration:=1:.N][, .(
+      iteration, auc, q.size,
+      log10.step.size=log10(step.size),
+      log10.aum=log10(aum))],
+    id.vars="iteration"))
+  if(require(ggplot2)){
+    ggplot()+
+      geom_point(aes(
+        iteration, value),
+        shape=1,
+        data=weight.result.tall)+
+      facet_grid(variable ~ ., scales="free")+
+      scale_y_continuous("")
+  }
+
 }
 
 }

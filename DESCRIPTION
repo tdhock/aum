@@ -1,7 +1,7 @@
 Package: aum
 Type: Package
 Title: Area Under Minimum of False Positives and Negatives
-Version: 2023.6.14
+Version: 2023.6.15
 Authors@R: c(
     person("Toby Dylan", "Hocking",
      email="toby.hocking@r-project.org",
@@ -27,7 +27,6 @@ Suggests:
     penaltyLearning,
     knitr, markdown,
     mlbench,
-    lattice,
     directlabels, microbenchmark,
     covr,
     atime,
