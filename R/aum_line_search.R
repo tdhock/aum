@@ -93,6 +93,29 @@ aum_line_search <- structure(function
       maxIterations = 200)
     if(requireNamespace("ggplot2"))plot(nb.weight.search)
 
+    ## Stop line search after finding a (local) max AUC or min AUM.
+    max.auc.search <- aum::aum_line_search(
+      nb.diffs,
+      feature.mat=X.keep,
+      weight.vec=weight.vec,
+      maxIterations="max.auc")
+    min.aum.search <- aum::aum_line_search(
+      nb.diffs,
+      feature.mat=X.keep,
+      weight.vec=weight.vec,
+      maxIterations="min.aum")
+    if(require("ggplot2")){
+      plot(nb.weight.search)+
+        geom_point(aes(
+          step.size, auc),
+          data=data.table(max.auc.search[["line_search_result"]], panel="auc"),
+          color="red")+
+        geom_point(aes(
+          step.size, aum),
+          data=data.table(min.aum.search[["line_search_result"]], panel="aum"),
+          color="red")
+    }
+
     ## Alternate viz with x=iteration instead of step size.
     nb.weight.full <- aum::aum_line_search(
       nb.diffs,

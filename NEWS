@@ -2,6 +2,7 @@ Changes in version 2023.6.15
 
 - if(requireNamespace("penaltyLearning")) in examples.
 - rm Suggests lattice.
+- examples for min AUM and max AUC line search.
 
 Changes in version 2023.6.14
 
