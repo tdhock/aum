@@ -218,7 +218,9 @@ aum_linear_model <- function
     }
     exact.dt <- data.table(search.result$line_search_result)
     best.row <- exact.dt[which.min(aum)]
-    search.dt.list[[paste(step.number)]] <- best.row
+    search.dt.list[[paste(step.number)]] <- best.row[
+    , iterations := ifelse(
+      is.numeric(maxIterations), nrow(exact.dt), intersections)][]
     improvement <- old.aum-best.row$aum
     old.aum <- best.row$aum
     if(!is.null(improvement.thresh)){
