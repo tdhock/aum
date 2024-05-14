@@ -13,10 +13,14 @@ aum_line_search <- structure(function
   pred.vec=NULL,
 ### N-vector of numeric predicted values. If NULL, feature.mat and
 ### weight.vec will be used to compute predicted values.
-  maxIterations=nrow(error.diff.df)
+  maxIterations=nrow(error.diff.df),
 ### max number of line search iterations, either a positive integer or
 ### "max.auc" or "min.aum" indicating to keep going until AUC
 ### decreases or AUM increases.
+  feature.mat.search=feature.mat,
+### feature matrix to use in line search, default is subtrain, can be validation
+  error.diff.search=error.diff.df
+### aum_diffs data frame to use in line search, default is subtrain, can be validation
 ){
   . <- fp.diff <- fn.diff <- intercept <- slope <- step.size <- NULL
   ## Above to suppress CRAN NOTE.
@@ -26,18 +30,23 @@ aum_line_search <- structure(function
   }
   L <- aum(error.diff.df, pred.vec)
   L$pred.vec <- pred.vec
+  L$pred.vec.search <- if(pred.null){
+    feature.mat.search %*% weight.vec
+  }else{
+    pred.vec
+  }
   L$gradient_pred <- rowMeans(L$derivative_mat)
   L$gradient <- if(pred.null){
     L$gradient_weight <- t(feature.mat) %*% L$gradient_pred
-    feature.mat %*% L$gradient_weight
+    feature.mat.search %*% L$gradient_weight
   }else{
     L$gradient_pred
   }
-  pred.i <- error.diff.df$example+1L
+  pred.i <- error.diff.search$example+1L
   L$line_search_input <- data.table(
-    fp.diff=error.diff.df$fp_diff,
-    fn.diff=error.diff.df$fn_diff,
-    intercept=error.diff.df$pred-pred.vec[pred.i],
+    fp.diff=error.diff.search$fp_diff,
+    fn.diff=error.diff.search$fn_diff,
+    intercept=error.diff.search$pred-L$pred.vec.search[pred.i],
     slope=L$gradient[pred.i]
   )[, .(
     fp.diff=sum(fp.diff),
@@ -137,6 +146,50 @@ aum_line_search <- structure(function
           data=weight.result.tall)+
         facet_grid(variable ~ ., scales="free")+
         scale_y_continuous("")
+    }
+
+    ## Example 4: line search on validation set.
+    X.sc <- scale(neuroblastomaProcessed$feature.mat)
+    keep <- apply(is.finite(X.sc), 2, all)
+    X.subtrain <- X.sc[1:100,keep]
+    X.validation <- X.sc[101:300,keep]
+    weight.vec <- rep(0, ncol(X.subtrain))
+    diffs.subtrain <- aum::aum_diffs_penalty(nb.err, rownames(X.subtrain))
+    diffs.validation <- aum::aum_diffs_penalty(nb.err, rownames(X.validation))
+    valid.search <- aum::aum_line_search(
+      diffs.subtrain,
+      feature.mat=X.subtrain,
+      weight.vec=weight.vec, 
+      maxIterations = 2000,
+      feature.mat.search=X.validation,
+      error.diff.search=diffs.validation)
+    if(requireNamespace("ggplot2"))plot(valid.search)
+
+    ## validation set max auc, min aum.
+    max.auc.valid <- aum::aum_line_search(
+      diffs.subtrain,
+      feature.mat=X.subtrain,
+      weight.vec=weight.vec,
+      maxIterations="max.auc",
+      feature.mat.search=X.validation,
+      error.diff.search=diffs.validation)
+    min.aum.valid <- aum::aum_line_search(
+      diffs.subtrain,
+      feature.mat=X.subtrain,
+      weight.vec=weight.vec,
+      maxIterations="min.aum",
+      feature.mat.search=X.validation,
+      error.diff.search=diffs.validation)
+    if(require("ggplot2")){
+      plot(valid.search)+
+        geom_point(aes(
+          step.size, auc),
+          data=data.table(max.auc.valid[["line_search_result"]], panel="auc"),
+          color="red")+
+        geom_point(aes(
+          step.size, aum),
+          data=data.table(min.aum.valid[["line_search_result"]], panel="aum"),
+          color="red")
     }
 
   }
