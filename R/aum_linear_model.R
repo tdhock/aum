@@ -198,24 +198,22 @@ aum_linear_model <- function
   loss.dt.list <- list()
   search.dt.list <- list()
   while({
+    for(set.name in names(diff.list)){
+      set.result <- aum::aum_line_search(
+        diff.list[[set.name]],
+        maxIterations=1,
+        feature.mat=feature.list[[set.name]],
+        weight.vec=weight.vec)
+      loss.dt.list[[paste(step.number, set.name)]] <- data.table(
+        step.number, 
+        set=set.name,
+        set.result$line_search_result[1, .(aum, auc)])
+    }
     search.result <- aum::aum_line_search(
       diff.list$subtrain,
       maxIterations=maxIterations,
       feature.mat=feature.list$subtrain,
       weight.vec=weight.vec)
-    loss.dt.list[[paste(step.number, "subtrain")]] <- data.table(
-      step.number, 
-      set="subtrain",
-      aum=search.result$aum)
-    if("validation"%in%names(feature.list)){
-      valid.list <- aum::aum(
-        diff.list$validation,
-        feature.list$validation %*% weight.vec)
-      loss.dt.list[[paste(step.number, "validation")]] <- data.table(
-        step.number,
-        set="validation",
-        aum=valid.list$aum)
-    }
     exact.dt <- data.table(search.result$line_search_result)
     best.row <- exact.dt[which.min(aum)]
     search.dt.list[[paste(step.number)]] <- best.row[
