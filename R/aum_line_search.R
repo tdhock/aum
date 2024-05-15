@@ -19,8 +19,10 @@ aum_line_search <- structure(function
 ### decreases or AUM increases.
   feature.mat.search=feature.mat,
 ### feature matrix to use in line search, default is subtrain, can be validation
-  error.diff.search=error.diff.df
+  error.diff.search=error.diff.df,
 ### aum_diffs data frame to use in line search, default is subtrain, can be validation
+  maxStepSize=-1
+### max step size to explore.
 ){
   . <- fp.diff <- fn.diff <- intercept <- slope <- step.size <- NULL
   ## Above to suppress CRAN NOTE.
@@ -54,7 +56,7 @@ aum_line_search <- structure(function
   ), keyby=.(intercept, slope)]
   if(identical(maxIterations, "max.auc"))maxIterations <- -1L
   if(identical(maxIterations, "min.aum"))maxIterations <- 0L
-  line.search.all <- aumLineSearch(L$line_search_input, maxIterations)
+  line.search.all <- aumLineSearch(L$line_search_input, maxIterations, maxStepSize)
   L$line_search_result <- data.table(line.search.all)[0 <= step.size]
   class(L) <- c("aum_line_search", class(L))
   L

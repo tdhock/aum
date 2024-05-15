@@ -67,7 +67,7 @@ Rcpp::List aum_sort_interface
 }
 
 // [[Rcpp::export]]
-Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
+Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations, double maxStepSize) {
     if(maxIterations < -1){
       Rcpp::stop("maxIterations must be either -1 (first max auc), 0 (first min aum), or positive (run for that many iterations)");
     }
@@ -92,6 +92,7 @@ Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations) {
             &fpDiff[0],
             &fnDiff[0],
             maxIterations,
+	    maxStepSize,
             &stepSizeVec[0],
             &aumVec[0],
             &aumSlopeAfterStepVec[0],

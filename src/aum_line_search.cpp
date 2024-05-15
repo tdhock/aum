@@ -250,6 +250,7 @@ int lineSearch
  const double *deltaFp,
  const double *deltaFn,
  const int maxIterations,
+ const double maxStepSize,
  double *stepSizeVec,
  double *aumVec, 
  double *aumSlopeAfterStepVec,
@@ -433,7 +434,7 @@ int lineSearch
     }
     bool found_min = queue.step_IntervalColumn_map.empty() || 
       aum > min_aum || aum<EPSILON;
-    if(found_min && maxIterations==0){
+    if(found_min && maxIterations==0 && maxStepSize<0){
       double big_step = (aum>min_aum) ? lastStepSize : stepSize;
       stepSizeVec[0]=(big_step+min_aum_first_step)/2;
       aumVec[0]=min_aum;
@@ -448,10 +449,20 @@ int lineSearch
     if(total_auc.value > max_auc){
       max_auc = total_auc.value;
       max_auc_first_step = stepSize;
+      if(maxStepSize>0){
+	stepSizeVec[0]=stepSize;
+	aumVec[0]=-INFINITY;
+	aumSlopeAfterStepVec[0]=-INFINITY;
+	aucAtStepVec[0]=max_auc;
+	aucAfterStepVec[0]=INFINITY;
+	intersectionCountVec[0]=total_intersections;
+	intervalCountVec[0]=total_intervals;
+	qSizeVec[0]=iteration;
+      }
     }
     bool found_max = queue.step_IntervalColumn_map.empty() || 
       EPSILON < max_auc-total_auc.value;
-    if(found_max && maxIterations == -1){
+    if(found_max && maxIterations == -1 && maxStepSize<0){
       stepSizeVec[0]=(stepSize+max_auc_first_step)/2;
       aumVec[0]=-INFINITY;
       aumSlopeAfterStepVec[0]=-INFINITY;
@@ -460,6 +471,9 @@ int lineSearch
       intersectionCountVec[0]=total_intersections;
       intervalCountVec[0]=total_intervals;
       qSizeVec[0]=iteration;
+      return 0;
+    }
+    if(maxStepSize>0 && stepSize >= maxStepSize){
       return 0;
     }
     lastStepSize = stepSize;

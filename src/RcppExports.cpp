@@ -23,21 +23,22 @@ BEGIN_RCPP
 END_RCPP
 }
 // aumLineSearch
-Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations);
-RcppExport SEXP _aum_aumLineSearch(SEXP dfSEXP, SEXP maxIterationsSEXP) {
+Rcpp::DataFrame aumLineSearch(const Rcpp::DataFrame df, int maxIterations, double maxStepSize);
+RcppExport SEXP _aum_aumLineSearch(SEXP dfSEXP, SEXP maxIterationsSEXP, SEXP maxStepSizeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type df(dfSEXP);
     Rcpp::traits::input_parameter< int >::type maxIterations(maxIterationsSEXP);
-    rcpp_result_gen = Rcpp::wrap(aumLineSearch(df, maxIterations));
+    Rcpp::traits::input_parameter< double >::type maxStepSize(maxStepSizeSEXP);
+    rcpp_result_gen = Rcpp::wrap(aumLineSearch(df, maxIterations, maxStepSize));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_aum_aum_sort_interface", (DL_FUNC) &_aum_aum_sort_interface, 2},
-    {"_aum_aumLineSearch", (DL_FUNC) &_aum_aumLineSearch, 2},
+    {"_aum_aumLineSearch", (DL_FUNC) &_aum_aumLineSearch, 3},
     {NULL, NULL, 0}
 };
 

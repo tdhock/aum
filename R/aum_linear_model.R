@@ -213,7 +213,6 @@ aum_linear_model <- function
         set=set.name,
         set.result$line_search_result[, .(aum, auc)])
     }
-    print(improvement)
     if(!is.null(improvement.thresh)){
       improvement.thresh < improvement
     }else if(!is.null(max.steps)){
@@ -241,7 +240,125 @@ aum_linear_model <- function
     }
     search.dt.list[[paste(step.number)]] <- best.row[
     , iterations := ifelse(
-      is.numeric(maxIterations), nrow(exact.dt), intersections)][]
+      is.numeric(maxIterations), nrow(exact.dt), q.size)][]
+    weight.vec <- weight.vec-
+      best.row$step.size*search.result$gradient_weight
+  }
+  out.list <- list(
+    loss=do.call(rbind, loss.dt.list),
+    weight.vec=weight.vec,
+    intercept=data.table(
+      search.result$total_error, key="thresh"
+    )[,{
+      best <- which.min(fp_before+fn_before)
+      if(best==1){
+        thresh[1]-1
+      }else{
+        mean(thresh[c(best-1,best)])
+      }
+    }],
+    search=rbindlist(search.dt.list))
+  structure(out.list, class="aum_linear_model")
+### Linear model represented as a list of class aum_linear_model with
+### named elements: loss is a data table of values for subtrain and
+### optionally validation at each step, weight.vec is the final vector
+### of weights learned via gradient descent, intercept is the value
+### which results in minimal total error (FP+FN), learned via a linear
+### scan over all possible values given the final weight vector, and
+### search is a data table with one row for each step (best step size
+### and number of iterations of line search).
+}
+
+aum_linear_model_ls <- function
+### Learn a linear model with weights that minimize AUM. Weights are
+### initialized as a vector of zeros, then optimized using gradient
+### descent with exact line search.
+(feature.list,
+### List with named elements subtrain and validation, each
+### should be a scaled feature matrix.
+  diff.list,
+### List with named elements subtrain and validation, each
+### should be a data table of differences in error functions.
+  max.steps=NULL,
+### positive integer: max number of steps of gradient descent with
+### exact line search (specify either this or improvement.thresh, not
+### both).
+  improvement.thresh=NULL,
+### non-negative real number: keep doing gradient descent while the
+### improvement in objective is greater than this number (specify either
+### this or max.steps, not both).
+  maxIterations="min.aum",
+### max number of iterations of exact line search. If "max.auc" then
+### the objective for improvement.thresh is max AUC, otherwise
+### objective is min AUM. Default is "min.aum" 
+  initial.weight.fun=NULL
+### Function for computing initial weights, default NULL means use a
+### random standard normal vector.
+){
+  fp_before <- fn_before <- thresh <- NULL
+  ## Above to suppress CRAN NOTE.
+  weight.vec <- if(is.null(initial.weight.fun)){
+    rnorm(ncol(feature.list$subtrain))
+  }else{
+    initial.weight.fun(feature.list$subtrain, diff.list$subtrain)
+  }
+  old.objective <- if(identical(maxIterations,"max.auc"))0 else Inf
+  improvement <- Inf
+  step.number <- 0
+  loss.dt.list <- list()
+  search.dt.list <- list()
+  while({
+    for(set.name in names(diff.list)){
+      set.result <- aum::aum_line_search(
+        diff.list[[set.name]],
+        maxIterations=1,
+        feature.mat=feature.list[[set.name]],
+        weight.vec=weight.vec)
+      loss.dt.list[[paste(step.number, set.name)]] <- data.table(
+        step.number, 
+        set=set.name,
+        set.result$line_search_result[, .(aum, auc)])
+    }
+    if(!is.null(improvement.thresh)){
+      improvement.thresh < improvement
+    }else if(!is.null(max.steps)){
+      step.number < max.steps 
+    }else{
+      stop("either improvement.thresh or max.steps must be not NULL")
+    }
+  }){
+    step.number <- step.number+1
+    search.result <- aum::aum_line_search(
+      diff.list$subtrain,
+      maxIterations=maxIterations,
+      feature.mat=feature.list$subtrain,
+      weight.vec=weight.vec)
+    exact.dt <- data.table(search.result$line_search_result)
+    best.row <- if(nrow(exact.dt)==1)exact.dt else exact.dt[which.min(aum)]
+    if(identical(maxIterations,"max.auc")){
+      improvement <- best.row$auc-old.objective
+      old.objective <- best.row$auc
+    }else{
+      improvement <- old.objective-best.row$aum
+      old.objective <- best.row$aum
+    }
+    search.dt.list[[paste(step.number)]] <- best.row[
+    , iterations := ifelse(
+      is.numeric(maxIterations), nrow(exact.dt), q.size)][]
+    search.valid <- aum::aum_line_search(
+      diff.list$subtrain,
+      maxIterations="max.auc",
+      feature.mat=feature.list$subtrain,
+      weight.vec=weight.vec,
+      feature.mat.search=feature.list$validation,
+      error.diff.search=diff.list$validation,
+      maxStepSize=best.row$step.size)
+    best.row[, `:=`(
+      max.valid.auc=search.valid$line_search_result$auc,
+      best.valid.it=search.valid$line_search_result$q.size,
+      best.valid.step=search.valid$line_search_result$step.size
+    )][]
+    print(best.row)
     weight.vec <- weight.vec-
       best.row$step.size*search.result$gradient_weight
   }

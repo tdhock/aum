@@ -4,14 +4,14 @@ intercept.decreasing <- data.frame(
   fp.diff=0, fn.diff=0, intercept=c(0,1,0), slope=0)
 test_that("error when intercepts are decreasing", {
   expect_error({
-    aum:::aumLineSearch(intercept.decreasing, maxIterations=10)
+    aum:::aumLineSearch(intercept.decreasing, maxIterations=10, maxStepSize=-1)
   }, "intercepts should be non-decreasing")
 })
 slope.same <- data.frame(
   fp.diff=0, fn.diff=0, intercept=c(0,1,1), slope=c(0,0,0))
 test_that("error when slope same", {
   expect_error({
-    aum:::aumLineSearch(slope.same, maxIterations=10)
+    aum:::aumLineSearch(slope.same, maxIterations=10, maxStepSize=-1)
   }, "slopes should be increasing for equal intercepts")
 })
 
@@ -22,7 +22,7 @@ test_that("error for negative max iterations", {
     fp.diff=c(0.5,0,0.5), 
     fn.diff=c(0,-0.5,-0.5))
   expect_error({
-    aum:::aumLineSearch(three.intersect, maxIterations = -2)
+    aum:::aumLineSearch(three.intersect, maxIterations = -2, maxStepSize=-1)
   }, "maxIterations must be either -1 (first max auc), 0 (first min aum), or positive (run for that many iterations)", fixed=TRUE)
 })
 
@@ -32,7 +32,7 @@ test_that("contrived three way tie computed ok", {
     slope=c(1, 0, -1),
     fp.diff=c(0.5,0,0.5), 
     fn.diff=c(0,-0.5,-0.5))
-  L <- aum:::aumLineSearch(three.intersect, maxIterations = 2)
+  L <- aum:::aumLineSearch(three.intersect, maxIterations = 2, maxStepSize=-1)
   (expected.df <- rbind(
     data.frame(
       step.size=0, aum=1, aum.slope.after=-1, 
@@ -51,7 +51,7 @@ test_that("contrived four way tie computed ok", {
     slope=c(1,-1,1,-1),
     fp.diff=c(0.5,0,0.5,0), 
     fn.diff=c(0,-0.5,0,-0.5))
-  L <- aum:::aumLineSearch(four.intersect, maxIterations = 3)
+  L <- aum:::aumLineSearch(four.intersect, maxIterations = 3, maxStepSize=-1)
   (expected.df <- rbind(
     data.frame(
       step.size=0, aum=3, aum.slope.after=-1, 
@@ -76,7 +76,7 @@ test_that("join to three way tie computed ok", {
     fn.diff=c(0,-0.5,0,-0.5))
   expected.step <- c(0,1,3)
   L <- aum:::aumLineSearch(
-    four.intersect, maxIterations = length(expected.step))
+    four.intersect, maxIterations = length(expected.step),maxStepSize=-1)
   expect_equal(L$step.size, expected.step)
 })
 
@@ -88,7 +88,7 @@ test_that("join to three way tie then another", {
     fn.diff=c(0,-0.5,0,-0.5))
   expected.step <- c(0,2,3,4)
   L <- aum:::aumLineSearch(
-    four.intersect, maxIterations = length(expected.step))
+    four.intersect, maxIterations = length(expected.step), maxStepSize=-1)
   if(require(ggplot2)){
     ggplot()+
       theme_bw()+
@@ -112,7 +112,7 @@ test_that("several ties", {
     fn.diff=c(0,-0.25,0,-0.25,0,-0.5))
   expected.step <- c(0,2,3,4,6,9,10)
   (L <- aum:::aumLineSearch(
-    several.intersect, maxIterations = length(expected.step)))
+    several.intersect, maxIterations = length(expected.step), maxStepSize=-1))
   if(require(ggplot2)){
     ggplot()+
       theme_bw()+
@@ -190,7 +190,7 @@ test_that("complex real data example", {
         xintercept=step),
         data=data.frame(step=c(0.010611,0.010801)))
   }
-  LDF <- aum:::aumLineSearch(some, nrow(points.dt)+1)
+  LDF <- aum:::aumLineSearch(some, nrow(points.dt)+1, maxStepSize=-1)
   step.dt <- data.table(
     computed=LDF$step, 
     expected=c(0, points.dt$step),

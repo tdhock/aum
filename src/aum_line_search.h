@@ -19,6 +19,7 @@ int lineSearch(
         const double *deltaFp,
         const double *deltaFn,
         const int maxIterations,
+        const double maxStepSize,
         //inputs above, size of outputs below = maxIterations.
         double *stepSizeVec,
         double *aumVec,
