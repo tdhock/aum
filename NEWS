@@ -1,3 +1,7 @@
+Changes in version 2024.6.19
+
+- fix ubsan issue by only doing &vec[0] if there is at least one element.
+
 Changes in version 2023.6.15
 
 - if(requireNamespace("penaltyLearning")) in examples.
