@@ -8,7 +8,8 @@ descent with exact line search.}
     diff.list, max.steps = NULL, 
     improvement.thresh = NULL, 
     maxIterations = "min.aum", 
-    initial.weight.fun = NULL)}
+    initial.weight.fun = NULL, 
+    line.search.set = "subtrain")}
 \arguments{
   \item{feature.list}{List with named elements subtrain and optionally validation, each
 should be a scaled feature matrix.}
@@ -18,12 +19,14 @@ should be a data table of differences in error functions.}
 exact line search (specify either this or \code{improvement.thresh}, not
 both).}
   \item{improvement.thresh}{non-negative real number: keep doing gradient descent while the
-improvement in AUM is greater than this number (specify either
+improvement in objective is greater than this number (specify either
 this or \code{max.steps}, not both).}
-  \item{maxIterations}{max number of iterations of exact line search, default is number
-of subtrain examples.}
+  \item{maxIterations}{max number of iterations of exact line search. If "max.auc" then
+the objective for \code{improvement.thresh} is max AUC, otherwise
+objective is min AUM. Default is "min.aum" }
   \item{initial.weight.fun}{Function for computing initial weights, default NULL means use a
 random standard normal vector.}
+  \item{line.search.set}{set to use for line search, subtrain or validation.}
 }
 
 \value{Linear model represented as a list of class aum_linear_model with

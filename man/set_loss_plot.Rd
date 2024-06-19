@@ -6,10 +6,8 @@
     set.colors = c(subtrain = "black", 
         validation = "red"))}
 \arguments{
-  \item{loss.dt}{
-}
-  \item{set.colors}{
-}
+  \item{loss.dt}{loss.dt }
+  \item{set.colors}{set.colors }
 }
 
 
