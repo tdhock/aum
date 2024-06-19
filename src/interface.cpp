@@ -33,7 +33,7 @@ Rcpp::List aum_sort_interface
   double *out_fn_after_ptr=0;
   Rcpp::NumericVector out_aum(1);
   Rcpp::NumericMatrix out_deriv_mat(pred_N, 2);
-  if(1 < err_N){
+  if(0 < err_N){
     err_pred_ptr = &err_pred[0];
     err_fp_diff_ptr = &err_fp_diff[0];
     err_fn_diff_ptr = &err_fn_diff[0];
