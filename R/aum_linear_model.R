@@ -189,7 +189,7 @@ aum_linear_model <- function
   line.search.set="subtrain"
 ### set to use for line search, subtrain or validation.
 ){
-  fp_before <- fn_before <- thresh <- NULL
+  fp_before <- fn_before <- thresh <- . <- auc <- iterations <- q.size <- NULL
   ## Above to suppress CRAN NOTE.
   weight.vec <- if(is.null(initial.weight.fun)){
     rnorm(ncol(feature.list$subtrain))
@@ -295,7 +295,7 @@ aum_linear_model_ls <- function
 ### Function for computing initial weights, default NULL means use a
 ### random standard normal vector.
 ){
-  fp_before <- fn_before <- thresh <- NULL
+  fp_before <- fn_before <- thresh <- . <- auc <- iterations <- q.size <- NULL
   ## Above to suppress CRAN NOTE.
   weight.vec <- if(is.null(initial.weight.fun)){
     rnorm(ncol(feature.list$subtrain))
