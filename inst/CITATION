@@ -1,0 +1,12 @@
+bibentry(
+  bibtype = "Article",
+  title = "Optimizing ROC Curves with a Sort-Based Surrogate Loss for Binary Classification and Changepoint Detection",
+  author = c(
+    person(c("Jonathan"), "Hillman"),
+    person(c("Toby", "Dylan"), "Hocking")),
+  year = "2023",
+  journal = "Journal of Machine Learning Research",
+  volume = "24",
+  number = "70",
+  pages = "1--24",
+  url = "http://jmlr.org/papers/v24/21-0751.html")

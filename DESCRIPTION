@@ -9,10 +9,13 @@ Authors@R: c(
     person("Jadon", "Fowler",
      role="aut",
      comment="Contributed exact line search C++ code"))
-Description: Standard template library sort is
- used to implement an efficient  
- algorithm <arXiv:2107.01285> for computing Area Under Minimum and
- directional derivatives.
+Description: Efficient algorithms
+ <https://jmlr.org/papers/v24/21-0751.html>
+ for computing Area Under Minimum (AUM),
+ directional derivatives, and
+ line search optimization of a linear model,
+ with objective defined as either max AUC or min AUM
+ on subtrain or validation set.
 License: GPL-3
 LinkingTo: Rcpp
 URL: https://github.com/tdhock/aum
