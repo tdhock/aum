@@ -11,11 +11,12 @@ Authors@R: c(
      comment="Contributed exact line search C++ code"))
 Description: Efficient algorithms
  <https://jmlr.org/papers/v24/21-0751.html>
- for computing Area Under Minimum (AUM),
+ for computing Area Under Minimum,
  directional derivatives, and
  line search optimization of a linear model,
- with objective defined as either max AUC or min AUM
- on subtrain or validation set.
+ with objective defined as either
+ max Area Under the Curve or
+ min Area Under Minimum.
 License: GPL-3
 LinkingTo: Rcpp
 URL: https://github.com/tdhock/aum
