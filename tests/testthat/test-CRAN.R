@@ -208,7 +208,7 @@ test_that("line search error for negative max FN", {
     slope = bad.fn.diffs$pred,
     key=c("intercept","slope"))
   expect_error({
-    aum:::aumLineSearch(line_search_input, 0)
+    aum:::aumLineSearch(line_search_input, 0, maxStepSize=-1)
   }, "max FN should be positive")
 })
 
@@ -231,7 +231,7 @@ test_that("line search error for negative max FP", {
     slope = bad.fp.diffs$pred,
     key=c("intercept","slope"))
   expect_error({
-    aum:::aumLineSearch(line_search_input, 0)
+    aum:::aumLineSearch(line_search_input, 0, maxStepSize=-1)
   }, "max FP should be positive")
 })
 

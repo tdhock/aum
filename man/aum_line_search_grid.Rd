@@ -45,20 +45,20 @@ if(requireNamespace("penaltyLearning")){
     min.lambda,
     max.lambda,
     fp, fn))
-  (nb.diffs <- aum::aum_diffs_penalty(nb.err, c("4.2", "1.1")))
-  if(requireNamespace("ggplot2"))plot(nb.diffs)
-  (nb.line.search <- aum::aum_line_search_grid(nb.diffs, pred.vec=c(-1,1)))
+  (diffs.subtrain <- aum::aum_diffs_penalty(nb.err, c("4.2", "1.1")))
+  if(requireNamespace("ggplot2"))plot(diffs.subtrain)
+  (nb.line.search <- aum::aum_line_search_grid(diffs.subtrain, pred.vec=c(-1,1)))
   if(requireNamespace("ggplot2"))plot(nb.line.search)
 
   ## Example 3: 50 changepoint examples, with linear model.
   X.sc <- scale(neuroblastomaProcessed$feature.mat[1:50,])
   keep <- apply(is.finite(X.sc), 2, all)
-  X.keep <- X.sc[,keep]
-  weight.vec <- rep(0, ncol(X.keep))
-  nb.diffs <- aum::aum_diffs_penalty(nb.err, rownames(X.keep))
+  X.subtrain <- X.sc[,keep]
+  weight.vec <- rep(0, ncol(X.subtrain))
+  diffs.subtrain <- aum::aum_diffs_penalty(nb.err, rownames(X.subtrain))
   nb.weight.search <- aum::aum_line_search_grid(
-    nb.diffs,
-    feature.mat=X.keep,
+    diffs.subtrain,
+    feature.mat=X.subtrain,
     weight.vec=weight.vec,
     maxIterations = 200)
   if(requireNamespace("ggplot2"))plot(nb.weight.search)

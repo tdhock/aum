@@ -11,33 +11,55 @@ Rcpp::List aum_sort_interface
     Rcpp::stop("need at least one prediction"); 
   }
   Rcpp::NumericVector err_pred = err_df["pred"];
+  double *err_pred_ptr=0;
   Rcpp::NumericVector err_fp_diff = err_df["fp_diff"];
+  double *err_fp_diff_ptr=0;
   Rcpp::NumericVector err_fn_diff = err_df["fn_diff"];
+  double *err_fn_diff_ptr=0;
   Rcpp::IntegerVector err_example = err_df["example"];
+  int *err_example_ptr=0;
   int err_N = err_df.nrow();
   Rcpp::IntegerVector out_indices(err_N);
+  int *out_indices_ptr=0;
   Rcpp::NumericVector out_thresh(err_N);
+  double *out_thresh_ptr=0;
   Rcpp::NumericVector out_fp_before(err_N);
+  double *out_fp_before_ptr=0;
   Rcpp::NumericVector out_fp_after(err_N);
+  double *out_fp_after_ptr=0;
   Rcpp::NumericVector out_fn_before(err_N);
+  double *out_fn_before_ptr=0;
   Rcpp::NumericVector out_fn_after(err_N);
+  double *out_fn_after_ptr=0;
   Rcpp::NumericVector out_aum(1);
   Rcpp::NumericMatrix out_deriv_mat(pred_N, 2);
+  if(0 < err_N){
+    err_pred_ptr = &err_pred[0];
+    err_fp_diff_ptr = &err_fp_diff[0];
+    err_fn_diff_ptr = &err_fn_diff[0];
+    err_example_ptr = &err_example[0];
+    out_indices_ptr = &out_indices[0];
+    out_thresh_ptr = &out_thresh[0];
+    out_fp_before_ptr = &out_fp_before[0];
+    out_fp_after_ptr = &out_fp_after[0];
+    out_fn_before_ptr = &out_fn_before[0];
+    out_fn_after_ptr = &out_fn_after[0];
+  }
   int status = aum_sort
-    (&err_pred[0],
-     &err_fp_diff[0],
-     &err_fn_diff[0],
-     &err_example[0],
+    (err_pred_ptr,
+     err_fp_diff_ptr,
+     err_fn_diff_ptr,
+     err_example_ptr,
      err_N,
      &pred_vec[0],
      pred_vec.size(),
      //inputs above, outputs below.
-     &out_indices[0],
-     &out_thresh[0],
-     &out_fp_before[0],
-     &out_fp_after[0],
-     &out_fn_before[0],
-     &out_fn_after[0],
+     out_indices_ptr,
+     out_thresh_ptr,
+     out_fp_before_ptr,
+     out_fp_after_ptr,
+     out_fn_before_ptr,
+     out_fn_after_ptr,
      &out_aum[0],
      &out_deriv_mat[0]);
   if(status == ERROR_AUM_SORT_EXAMPLE_SHOULD_BE_LESS_THAN_NUMBER_OF_PREDICTIONS){
