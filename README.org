@@ -94,5 +94,5 @@ in each step of gradient descent when learning a linear model.
 - [[https://cloud.r-project.org/web/packages/aum/vignettes/speed-comparison.html][The speed comparison vignette]] has an alternative implementation of
   AUM and its directional derivatives in base R code.
 - [[https://github.com/tdhock/max-generalized-auc][max-generalized-auc]] repo provides code for making the figures in
-  https://arxiv.org/abs/2107.01285
-- [[https://tdhock.github.io/blog/2022/torch-auto-grad-non-diff/][A python/torch implementation of AUM for binary classification]].
+  https://arxiv.org/abs/2107.01285 and https://arxiv.org/abs/2410.08635
+- Blogs about [[https://tdhock.github.io/blog/2022/torch-auto-grad-non-diff/][a pytorch implementation of AUM for binary classification]], and [[https://tdhock.github.io/blog/2024/torch-roc-aum/][computing AUC and AUM in torch]].
